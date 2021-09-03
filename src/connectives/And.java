@@ -24,8 +24,13 @@ public class And extends Formula {
 	public And() {
 		super();
 	}
-
-	public And(Set<Formula> set) {
+	public static  Formula getAnd(Set<Formula> set){
+		Formula and = null;
+		if(set.size() > 1) and = new And(set);
+		else and = set.iterator().next();
+		return and;
+	}
+	private And(Set<Formula> set) {
 		super(set.size());
 		this.setSubformulae(set);
 		this.setSubFormulas(new ArrayList<>(this.getSubformulae()));

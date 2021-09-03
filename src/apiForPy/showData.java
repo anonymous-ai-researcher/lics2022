@@ -181,14 +181,25 @@ public class showData {
         }
         Forgetter forget = new Forgetter();
         BackConverter bc = new BackConverter();
+        /*
         Converter ct = new Converter();
         List<Formula> AllformulaListClone = new ArrayList<>();
         for(Object i : DATA.get(0)){
             Formula temp = (Formula)i;
             AllformulaListClone.add(temp.clone());
         }
+
+         */
         OWLOntology ontology =   OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(path));
-        List<Formula> results = forget.Forgetting(forgetRoleList,forgetConceptList,AllformulaListClone,ontology);
+        Set<OWLObjectProperty> roles = new HashSet<>();
+        for(AtomicRole r : forgetRoleList){
+            roles.add(bc.toOWLObjectProperty(r));
+        }
+        Set<OWLClass> concepts = new HashSet<>();
+        for(AtomicConcept c : forgetConceptList){
+            concepts.add(bc.toOWLClass(c));
+        }
+        List<Formula> results = forget.Forgetting(roles,concepts,ontology);
         ans.add( results);
         List<Integer> success = new ArrayList<>();
         success.add(1-Forgetter.isExtra);

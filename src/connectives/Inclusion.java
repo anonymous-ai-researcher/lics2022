@@ -57,7 +57,7 @@ public class Inclusion extends Formula {
 		Set<Formula> list = new LinkedHashSet<>();
 		list.add(a);
 		list.add(c);
-		And and = new And(list);
+		Formula and =  And.getAnd(list);
 		Inclusion inc = new Inclusion(e, and);
 		System.out.println(inc);
 		System.out.println("e.c_sig = " + e.get_c_sig());

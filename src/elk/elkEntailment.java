@@ -32,8 +32,11 @@ public class elkEntailment {
     }
     public static void check(OWLOntology onto, List<Formula> ui, Set<AtomicRole> roleSet, Set<AtomicConcept> conceptSet)throws Exception{
 
-        Reasoner reasoner = new Reasoner(new Configuration(),onto);
+        OWLReasoner reasoner = new Reasoner(new Configuration(),onto);
+        System.out.println("-------");
         BackConverter ct = new BackConverter();
+        int all = ui.size();
+        int i = 0 ;
         for(Formula formula : ui){
             if(Sets.intersection(formula.get_c_sig(),conceptSet).size() != 0 || Sets.intersection(formula.get_r_sig(),roleSet).size() != 0){
                 throw new Exception("there exits new symbols!");
@@ -45,7 +48,7 @@ public class elkEntailment {
                 System.out.println(axiom);
                 throw new Exception("there is an axiom not entailed by initial onto!");
             }
-            System.out.println("yes");
+            System.out.println("yes "+ i++ +" " + all);
 
         }
     }

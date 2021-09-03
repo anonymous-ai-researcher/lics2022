@@ -132,7 +132,7 @@ public class Converter {
 					and.add(RightSubformulaConverter(f));
 				}
 			}
-			return new And(and);
+			return  And.getAnd(and);
 		}
 		else{
 			return formula;
@@ -277,7 +277,7 @@ public class Converter {
 	}
 
 
-	private Formula ClassExpressionConverter(OWLClassExpression concept) {
+	public Formula ClassExpressionConverter(OWLClassExpression concept) {
 	
 		if (concept.isTopEntity()) {
 			return TopConcept.getInstance();
@@ -304,7 +304,7 @@ public class Converter {
 				conjunct_set.add(temp);
 
 			}
-			return new And(conjunct_set);
+			return  And.getAnd(conjunct_set);
 
 		} 
 		return null;
@@ -329,15 +329,15 @@ public class Converter {
 		Set<Formula> now2 =new LinkedHashSet<>();
 		now2.add(new AtomicConcept("A"));
 		now2.add(new AtomicConcept("B"));
-		And and = new And(now2);
+		Formula and =  And.getAnd(now2);
 		Set<Formula> temp = new HashSet<>();
 		temp.add(and);
 		temp.add(new AtomicConcept("H"));
-		now.add(new Exists(new AtomicRole("r"),new And(temp)));
+		now.add(new Exists(new AtomicRole("r"), And.getAnd(temp)));
 		now.add(new AtomicConcept("C"));
 		System.out.println(now);
 
-		Formula temp2 = new Converter().RightSubformulaConverter(new And(now));
+		Formula temp2 = new Converter().RightSubformulaConverter( And.getAnd(now));
 		System.out.println(temp2);
 		System.out.println(temp2.getSubformulae());
 		for(Formula t : temp2.getSubformulae()){

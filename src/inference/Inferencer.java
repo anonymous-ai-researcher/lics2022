@@ -111,6 +111,7 @@ public class Inferencer {
 
 			} else if (subsumee instanceof And) {
 				if (subsumee.getSubformulae().contains(concept)) { ////// changed
+
 					negative_star_and_premises.add(formula);
 				} else {
 					for(Formula f : subsumee.getSubformulae()){
@@ -231,8 +232,11 @@ public class Inferencer {
 
 						and.add(ns_premise.getSubFormulas().get(1));
 					}
-					Formula And = new And(and);
-					temp = AckermannReplace(concept, pe_premise, And);
+					Formula ands = And.getAnd(and);
+
+
+
+					temp = AckermannReplace(concept, pe_premise, ands);
 					//BackTrack.addFatherHash(temp.clone(),pe_premise.clone(),And,7);
 				}
 				else{
@@ -254,7 +258,7 @@ public class Inferencer {
 						exceptConcept.add(i);
 					}
 				}
-				And and = new And(exceptConcept);
+				Formula and =  And.getAnd(exceptConcept);
 				Formula nowCheck = new Inclusion(TopConcept.getInstance(),and);
 				if(elkEntailment.entailed(reasoner,bc.toOWLSubClassOfAxiom(nowCheck),2)){
 					tag = 1;
@@ -296,7 +300,7 @@ public class Inferencer {
 					Formula pe_premise_left=  pe_premise.getSubFormulas().get(0);
 					if(pe_premise_left instanceof And) exceptConcept.addAll(pe_premise_left.getSubformulae());  // 防止 [A and B, C] 出现
 					else exceptConcept.add(pe_premise_left);
-					And and = new And(exceptConcept);
+					Formula and =  And.getAnd(exceptConcept);
 					Formula temp = new Inclusion(and,nsae_premise.getSubFormulas().get(1));
 					if(!tc.isTautology(temp)) output_list.add(temp);
 					//BackTrack.addFatherHash(temp.clone(),pe_premise.clone(),nsae_premise.clone(),7);
@@ -313,7 +317,7 @@ public class Inferencer {
 					}
 
 				}
-				And and = new And(exceptConcept);
+				Formula and =  And.getAnd(exceptConcept);
 				if(elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion(TopConcept.getInstance(),and)),2) &&
 				elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion(pe_premise.getSubFormulas().get(1).getSubFormulas().get(0),
 						nea_premise.getSubFormulas().get(0).getSubFormulas().get(0))),2)){
@@ -346,13 +350,13 @@ public class Inferencer {
 						exceptConcept2.add(i);
 					}
 				}
-				if(elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion(TopConcept.getInstance(),new And(exceptConcept2))),2) && elkEntailment.entailed(reasoner,
+				if(elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion(TopConcept.getInstance(), And.getAnd(exceptConcept2))),2) && elkEntailment.entailed(reasoner,
 						bc.toOWLAxiom(new Inclusion(pe_premise.getSubFormulas().get(1).getSubFormulas().get(0),role)),2)){
 					tag = 1;
 					Formula pe_premise_left=  pe_premise.getSubFormulas().get(0);
 					if(pe_premise_left instanceof And) exceptConcept.addAll(pe_premise_left.getSubformulae());  // 防止 [A and B, C] 出现
 					else exceptConcept.add(pe_premise_left);
-					Formula temp = new Inclusion(new And(exceptConcept),nsaea_premise.getSubFormulas().get(1));
+					Formula temp = new Inclusion( And.getAnd(exceptConcept),nsaea_premise.getSubFormulas().get(1));
 					if(!tc.isTautology(temp)) output_list.add(temp);
 					//BackTrack.addFatherHash(temp.clone(),pe_premise.clone(),nsaea_premise.clone(),7);
 				}
@@ -383,8 +387,8 @@ public class Inferencer {
 					for (Formula ns_premise : negative_star_premises) {
 						and.add(ns_premise.getSubFormulas().get(1));
 					}
-					Formula And = new And(and);
-					temp = AckermannReplace(concept, pea_premise, And);
+					Formula ands =  And.getAnd(and);
+					temp = AckermannReplace(concept, pea_premise, ands);
 					//BackTrack.addFatherHash(temp.clone(),pea_premise.clone(),And.clone(),7);
 
 				}
@@ -404,12 +408,12 @@ public class Inferencer {
 						exceptConcept.add(i);
 
 				}
-				And and = new And(exceptConcept);
+				Formula and =  And.getAnd(exceptConcept);
 				Set<Formula> exceptConcept2 = new LinkedHashSet<>();//B
 				for(Formula i : pea_premise.getSubFormulas().get(1).getSubFormulas().get(1).getSubformulae()){
 					if(!i.equals(concept)) exceptConcept2.add(i);
 				}
-				And and2 = new And(exceptConcept2);
+				Formula and2 =  And.getAnd(exceptConcept2);
 				Formula nowCheck = new Inclusion(and2,and);
 				if(elkEntailment.entailed(reasoner,bc.toOWLSubClassOfAxiom(nowCheck),2)){
 					tag = 1;
@@ -447,7 +451,7 @@ public class Inferencer {
 					Formula pe_premise_left=  pea_premise.getSubFormulas().get(0);
 					if(pe_premise_left instanceof And) exceptConcept.addAll(pe_premise_left.getSubformulae());  // 防止 [A and B, C] 出现
 					else exceptConcept.add(pe_premise_left);
-					And and = new And(exceptConcept);
+					Formula and =  And.getAnd(exceptConcept);
 					Formula temp = new Inclusion(and,nsae_premise.getSubFormulas().get(1));
 					if(!tc.isTautology(temp)) output_list.add(temp);
 					//BackTrack.addFatherHash(temp.clone(),pea_premise.clone(),nsae_premise.clone(),7);
@@ -468,7 +472,7 @@ public class Inferencer {
 					}
 				}
 
-				if(elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion(new And(exceptConcept2),new And(exceptConcept1))),2) &&
+				if(elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion( And.getAnd(exceptConcept2), And.getAnd(exceptConcept1))),2) &&
 				elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion(pea_premise.getSubFormulas().get(1).getSubFormulas().get(0),nea_premise.getSubFormulas().get(0).getSubFormulas().get(0))),2)){
 					tag = 1;
 					Formula temp = new Inclusion(pea_premise.getSubFormulas().get(0),nea_premise.getSubFormulas().get(1));
@@ -509,13 +513,13 @@ public class Inferencer {
 					}
 				}
 
-				if(elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion(new And(exceptConcept2),new And(exceptConcept3))),2) &&
+				if(elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion( And.getAnd(exceptConcept2), And.getAnd(exceptConcept3))),2) &&
 				   elkEntailment.entailed(reasoner,bc.toOWLAxiom(new Inclusion(pea_premise.getSubFormulas().get(1).getSubFormulas().get(0),role)),2)){
 					tag = 1;
 					Formula pe_premise_left=  pea_premise.getSubFormulas().get(0);
 					if(pe_premise_left instanceof And) exceptConcept.addAll(pe_premise_left.getSubformulae());  // 防止 [A and B, C] 出现
 					else exceptConcept.add(pe_premise_left);
-					Formula temp = new Inclusion(new And(exceptConcept),nsaea_premise.getSubFormulas().get(1));
+					Formula temp = new Inclusion( And.getAnd(exceptConcept),nsaea_premise.getSubFormulas().get(1));
 					if(!tc.isTautology(temp)) output_list.add(temp);
 					//BackTrack.addFatherHash(temp.clone(),pea_premise.clone(),nsaea_premise.clone(),7);
 				}
@@ -647,8 +651,8 @@ public class Inferencer {
 
 				Formula inclusion = new Inclusion(pe_subsumer_filler, ne_subsumee_filler);
 				OWLAxiom axiom = bc.toOWLAxiom(inclusion);
-				if (elkEntailment.entailed(reasoner, axiom, 2)) {
-				//if (elkEntailment.hasChecked_OnO2.containsKey(axiom) && elkEntailment.entailed(reasoner, axiom, 2)) {
+				//if (elkEntailment.entailed(reasoner, axiom, 2)) {
+				if (elkEntailment.hasChecked_OnO2.containsKey(axiom) && elkEntailment.entailed(reasoner, axiom, 2)) {
 
 					Formula new_inclusion = null;
 					if (ne_subsumee instanceof Exists) {
@@ -658,7 +662,7 @@ public class Inferencer {
 						Set<Formula> new_conjunct_set = new LinkedHashSet<>(ne_subsumee.getSubformulae());
 						new_conjunct_set.remove(stored_conjunct);
 						new_conjunct_set.add(pe_subsumee);
-						Formula new_subsumee = new And(new_conjunct_set);
+						Formula new_subsumee =  And.getAnd(new_conjunct_set);
 						new_inclusion = new Inclusion(new_subsumee, ne_subsumer);
 
 
@@ -782,7 +786,7 @@ public class Inferencer {
 				}
 				else conjunct_set.add(temp);
 			}
-			return new And(conjunct_set);
+			return  And.getAnd(conjunct_set);
 
 		}
 
@@ -829,7 +833,7 @@ public class Inferencer {
 				}
 				else conjunct_set.add(temp);
 			}
-			return new And(conjunct_set);
+			return  And.getAnd(conjunct_set);
 			
 		} 
 		
@@ -880,7 +884,7 @@ public class Inferencer {
 			for (Formula conjunct : conjunct_list) {
 				conjunct_set.add(Purify(concept, conjunct));
 			}
-			return new And(conjunct_set);
+			return  And.getAnd(conjunct_set);
 			
 		}
 

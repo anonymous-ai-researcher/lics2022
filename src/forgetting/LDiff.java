@@ -6,6 +6,7 @@ import formula.Formula;
 
 import org.semanticweb.HermiT.Configuration;
 import org.semanticweb.HermiT.Reasoner;
+import org.semanticweb.HermiT.ReasonerFactory;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.reasoner.NodeSet;
 import roles.AtomicRole;
@@ -51,7 +52,8 @@ public class LDiff {
 	 * @return four ontologies, uniform interpolation, complete witness, explicit witness, implicit witness
      */
     public List<OWLOntology> LDiff(OWLOntology onto_1,OWLOntology onto_2)throws Exception{ // f
-    	List<OWLOntology> ans = new ArrayList<>();
+
+		List<OWLOntology> ans = new ArrayList<>();
 		Set<OWLClass> c_sig_1 = onto_1.getClassesInSignature();
 		Set<OWLClass> c_sig_2 = onto_2.getClassesInSignature();
 		Set<OWLClass> c_sig = new LinkedHashSet<>(Sets.difference(c_sig_2, c_sig_1));
@@ -62,6 +64,7 @@ public class LDiff {
 		Set<OWLEntity> forgettingSignatures = new HashSet<>();
 		forgettingSignatures.addAll(r_sig);
 		forgettingSignatures.addAll(c_sig);
+		/*
 		// Extract module to speed our tool on common signature.
 		SyntacticLocalityModuleExtractor extractor = new SyntacticLocalityModuleExtractor(manager, onto_2, ModuleType.BOT);
 		Set<OWLAxiom> moduleOnto_2OnForgettingSig = extractor.extract(Sets.difference(onto_2.getSignature(),forgettingSignatures));
@@ -73,25 +76,24 @@ public class LDiff {
 			}
 		}
 		System.out.println("module size "+moduleOnto_2_OnCommonSig_logical.size()+"  o2 size "+ onto_2.getLogicalAxioms().size());
-
+		*/
 
 		Converter ct = new Converter();
 		BackConverter bc = new BackConverter();
 		Forgetter forgetter = new Forgetter();
 
-		Set<AtomicRole> role_set = ct.getRolesfromObjectProperties(r_sig);
-		Set<AtomicConcept> concept_set = ct.getConceptsfromClasses(c_sig);
+		//List<Formula> formula_list = ct.AxiomsConverter(moduleOnto_2_OnCommonSig_logical);
 
-		//List<Formula> formula_list = ct.AxiomsConverter(moduleOnto_2OnCommonSig_logical_temp);
-		List<Formula> formula_list = ct.AxiomsConverter(moduleOnto_2_OnCommonSig_logical);
 
-		System.out.println("The forgetting task is to eliminate [" + concept_set.size() + "] concept names and ["
-				+ role_set.size() + "] role names from [" + formula_list.size() + "] normalized axioms");
+
+		System.out.println("The forgetting task is to eliminate [" + c_sig.size() + "] concept names and ["
+				+ r_sig.size() + "] role names ");
 		long startTime_1 = System.currentTimeMillis();
-		List<Formula> uniform_interpolantList = forgetter.Forgetting(role_set, concept_set, formula_list, onto_2);
+		List<Formula> uniform_interpolantList = forgetter.Forgetting(r_sig, c_sig, onto_2);
 		long endTime_1 = System.currentTimeMillis();
 		System.out.println("Forgetting Duration = " + (endTime_1 - startTime_1) + " millis");
-		//elkEntailment.check(onto_2,uniform_interpolantList);
+		elkEntailment.check(onto_2,uniform_interpolantList,ct.getRolesfromObjectProperties(r_sig),ct.getConceptsfromClasses(c_sig));
+
 		List<Formula> onto_2_formula_list = ct.OntologyConverter(onto_2);
 		Set<Formula> uniform_interpolantSet = Sets.difference(new HashSet<>(uniform_interpolantList),new HashSet<>(onto_2_formula_list));
 		Set<OWLAxiom> uniform_interpolant = bc.toOWLAxioms(new ArrayList<>(uniform_interpolantSet));
@@ -103,7 +105,6 @@ public class LDiff {
 		}
 		OWLOntology ui = OWLManager.createOWLOntologyManager().createOntology(uniform_interpolant);
 		ans.add(ui);
-		OWLReasoner reasoner= new Reasoner(new Configuration(),onto_1);
 
 		//OWLReasoner reasoner =  new ElkReasonerFactory().createReasoner(onto_1);
 		OWLOntology witness_complete_onto = manager.createOntology();
@@ -114,8 +115,10 @@ public class LDiff {
 
 		long startTime_2 = System.currentTimeMillis();
 		System.out.println("ui size: "+uniform_interpolant.size());
+		System.gc();
+		Reasoner reasoner1= new Reasoner(new Configuration(),onto_1);
 		for (OWLAxiom axiom : uniform_interpolant) {
-			if(!elkEntailment.entailed(reasoner,axiom)){
+			if(!elkEntailment.entailed(reasoner1,axiom)){
 				//if (!reasoner.isEntailed(axiom)) {
 				manager.applyChange(new AddAxiom(witness_complete_onto, axiom));
 				System.out.println("witness_complete = " + axiom);
@@ -131,8 +134,10 @@ public class LDiff {
 		long endTime_2 = System.currentTimeMillis();
 		System.out.println("Entailment Duration = " + (endTime_2 - startTime_2) + " millis");
 		ans.add(witness_complete_onto);ans.add(witness_explicit_onto);ans.add(witness_implicit_onto);
-		reasoner.dispose();
+		reasoner1.dispose();
 		return ans;
+
+
 	}
 	public void compute_LDiff(OWLOntology onto_1, OWLOntology onto_2, String path)
 			throws Exception {
@@ -166,24 +171,18 @@ public class LDiff {
 
 
 		OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
+
 		System.out.println("Onto_1 Path: ");
-		String filePath1 ="/Users/liuzhao/Downloads/bfo-1.1.owl";
+		String filePath1 = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/ontology_202003.owl";
 		OWLOntology onto_1 = manager1.loadOntologyFromOntologyDocument(new File(filePath1));
-		System.out.println("onto_1 size = " + onto_1.getLogicalAxiomCount());
-		System.out.println("c_sig_1 size = " + onto_1.getClassesInSignature().size());
-		System.out.println("r_sig_1 size = " + onto_1.getObjectPropertiesInSignature().size());
+
 		OWLOntologyManager manager2 = OWLManager.createOWLOntologyManager();
 		System.out.println("Onto_2 Path: ");
-		String filePath2 ="/Users/liuzhao/Downloads/bfo.owl";
+		String filePath2 = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/ontology_201607.owl";
 		OWLOntology onto_2 = manager2.loadOntologyFromOntologyDocument(new File(filePath2));
-		System.out.println("onto_2 size = " + onto_2.getLogicalAxiomCount());
-		System.out.println("c_sig_2 size = " + onto_2.getClassesInSignature().size());
-		System.out.println("r_sig_2 size = " + onto_2.getObjectPropertiesInSignature().size());
-		long startTime1 = System.currentTimeMillis(); LDiff diff = new LDiff();
-		String saveWitnessPath = "/Users/liuzhao/Desktop";
-		diff.compute_LDiff(onto_1, onto_2,  saveWitnessPath);
-		long endTime1 = System.currentTimeMillis();
-		System.out.println("Total Duration = " + (endTime1 - startTime1) + "millis");
+
+		LDiff lDiff = new LDiff();
+		lDiff.LDiff(onto_1,onto_2);
 
 
 	/*

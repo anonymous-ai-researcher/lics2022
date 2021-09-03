@@ -59,7 +59,7 @@ public class FChecker {
 		for (Formula hello : list1) {
 			System.out.println("hello = " + hello);
 		}
-		And and1 = new And(list1);
+		Formula and1 =  And.getAnd(list1);
 		Set<Formula> list2 = new LinkedHashSet<>();
 		list2.add(a);
 		list2.add(b);
@@ -67,7 +67,7 @@ public class FChecker {
 		list2.add(e);
 		list2.add(b);
 		list2.add(c);
-		And and2 = new And(list2);
+		Formula and2 =  And.getAnd(list2);
 		Inclusion inc = new Inclusion(and2, and1);
 		FChecker fc = new FChecker();
 		System.out.println("e.c_sig = " + inc);

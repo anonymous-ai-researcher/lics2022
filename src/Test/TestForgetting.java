@@ -90,6 +90,8 @@ public class TestForgetting {
     public static int isExtra = 0;
     public static double mem = 0;
     public static int success = 0;
+    public static  int witness_explicit_onto = 0;
+    public static  int witness_implicit_onto  = 0;
     public static String nowLog = null;
     public static OWLOntology resultOWLOntology;
     public static int isExtra(OWLOntology resultontology){
@@ -102,7 +104,7 @@ public class TestForgetting {
         }
         return 0;
     }
-    public static OWLOntology LetheForgetting(String dictPath,String filelog,String log,List<Formula> formulaList,Set<OWLEntity> symbols,OWLOntology onto) throws Exception{
+    public static OWLOntology LetheForgetting(String dictPath,String filelog,String log,Set<OWLEntity> symbols,OWLOntology onto) throws Exception{
 
         final ExecutorService exec = Executors.newSingleThreadExecutor();
         AlchTBoxForgetter LetheForgetter = new AlchTBoxForgetter();
@@ -196,7 +198,7 @@ public class TestForgetting {
     }
 
 
-    public static OWLOntology MyForgetting(String dictPath,String filelog,String log,List<Formula> formulaList, Set<AtomicRole> roleSet, Set<AtomicConcept> conceptSet,OWLOntology onto) throws  Exception{
+    public static OWLOntology MyForgetting(String dictPath,String filelog,String log, Set<OWLObjectProperty> roleSet, Set<OWLClass> conceptSet,OWLOntology onto) throws  Exception{
         final ExecutorService exec = Executors.newSingleThreadExecutor();
         Callable<Integer> task = new Callable<Integer>() {
             @Override
@@ -210,7 +212,7 @@ public class TestForgetting {
                     List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
                     long time1 = System.currentTimeMillis();
 
-                    List<Formula> ui = new Forgetter().Forgetting(roleSet, conceptSet, formulaList, onto);
+                    List<Formula> ui = new Forgetter().Forgetting(roleSet, conceptSet, onto);
                     resultOWLOntology = new BackConverter().toOWLOntology(ui);
 
                     long time2 = System.currentTimeMillis();
@@ -354,10 +356,11 @@ public class TestForgetting {
         }
 
 
-
+        /*
         //data
         List<Formula> formulaELH = ct.OntologyConverter(onto2);
         onto2 = bc.toOWLOntology(formulaELH);
+         */
         //final String log = dictPath+","+logicalsize+","+rolesize+","+conceptsize+","+GCIsize+","+GCIrolesize+","+GCIconceptsize+",";
         final String log = pathOnto2;
         time = 0;
@@ -369,8 +372,8 @@ public class TestForgetting {
         Set<OWLClass> forgettingConcepts = new LinkedHashSet<>(Sets.difference(onto2.getClassesInSignature(), onto1.getClassesInSignature()));
         Set<OWLObjectProperty> forgettingRoles = new LinkedHashSet<>(Sets.difference(onto2.getObjectPropertiesInSignature(), onto1.getObjectPropertiesInSignature()));
         Set<OWLEntity> forgettingSignatures = Sets.union(new HashSet<>(forgettingConcepts), new HashSet<>(forgettingRoles));
+        /*
         SyntacticLocalityModuleExtractor extractor = new SyntacticLocalityModuleExtractor(manager1, onto2, ModuleType.STAR);
-
         Set<OWLAxiom> moduleOnto_2OnForgettingSig = extractor.extract(Sets.difference(onto2.getSignature(), forgettingSignatures));
         Set<OWLLogicalAxiom> moduleOnto_2OnCommonSig_logical = new HashSet<>();
         Set<OWLAxiom> moduleOnto_2OnCommonSig2 = new HashSet<>();
@@ -382,13 +385,12 @@ public class TestForgetting {
             }
         }
         OWLOntology afterDeleteNotELHAxioms = manager2.createOntology(moduleOnto_2OnCommonSig2);
-
         List<Formula> formulaList = ct.AxiomsConverter(moduleOnto_2OnCommonSig_logical);
-        Set<AtomicRole> roleSet = ct.getRolesfromObjectProperties(new HashSet<>(forgettingRoles));
-        Set<AtomicConcept> conceptSet = ct.getConceptsfromClasses(new HashSet<>(forgettingConcepts));
+
+         */
 
         System.out.println("begin mine");
-        OWLOntology myForgettingUI = MyForgetting(dictPath,filelog,log,formulaList,roleSet,conceptSet,afterDeleteNotELHAxioms);
+        OWLOntology myForgettingUI = MyForgetting(dictPath,filelog,log,new HashSet<>(forgettingRoles),new HashSet<>(forgettingConcepts),onto2);
         int number1 = -1;
         if(success == 1 && isExtra == 0) {
             saveOntology(manager2, myForgettingUI, dictPath + "uiPrototype.owl");
@@ -405,7 +407,7 @@ public class TestForgetting {
 
 
         System.out.println("begin lethe");
-        OWLOntology letheForgettingUI = LetheForgetting(dictPath,filelog,log,formulaList,forgettingSignatures,afterDeleteNotELHAxioms);
+        OWLOntology letheForgettingUI = LetheForgetting(dictPath,filelog,log,forgettingSignatures,onto2);
         int number2 = -1;
         if(success == 1 && isExtra == 0) {
             saveOntology(manager2, letheForgettingUI, dictPath + "uiLethe.owl");
@@ -500,9 +502,10 @@ public class TestForgetting {
                 System.out.println(hasReadMine);
                 List<OWLClass> forgettingConcepts = getSubStringByRadom2(conceptList, (int) (rate * conceptsize));
                 List<OWLObjectProperty> forgettingRoles = getSubStringByRadom1(roleList, (int) (rate * rolesize));
-                Set<OWLEntity> forgettingSignatures = Sets.union(new HashSet<>(forgettingConcepts), new HashSet<>(forgettingRoles));
-                SyntacticLocalityModuleExtractor extractor = new SyntacticLocalityModuleExtractor(manager1, onto, ModuleType.STAR);
 
+                /*
+                  Set<OWLEntity> forgettingSignatures = Sets.union(new HashSet<>(forgettingConcepts), new HashSet<>(forgettingRoles));
+                SyntacticLocalityModuleExtractor extractor = new SyntacticLocalityModuleExtractor(manager1, onto, ModuleType.STAR);
                 Set<OWLAxiom> moduleOnto_2OnForgettingSig = extractor.extract(Sets.difference(onto.getSignature(), forgettingSignatures));
                 Set<OWLLogicalAxiom> moduleOnto_2OnCommonSig_logical = new HashSet<>();
                 System.out.println("module finished");
@@ -512,10 +515,10 @@ public class TestForgetting {
                     }
                 }
                 List<Formula> formulaList = ct.AxiomsConverter(moduleOnto_2OnCommonSig_logical);
-                Set<AtomicRole> roleSet = ct.getRolesfromObjectProperties(new HashSet<>(forgettingRoles));
-                Set<AtomicConcept> conceptSet = ct.getConceptsfromClasses(new HashSet<>(forgettingConcepts));
+
+                 */
                 System.out.println("begin mine");
-                OWLOntology myForgettingUI = MyForgetting(dictPath,filelog,log,formulaList,roleSet,conceptSet,onto);
+                OWLOntology myForgettingUI = MyForgetting(dictPath,filelog,log,new HashSet<>(forgettingRoles),new HashSet<>(forgettingConcepts),onto);
                 System.out.println("begin lethe");
                 //OWLOntology letheForgettingUI = LetheForgetting(dictPath,filelog,log,formulaList,forgettingSignatures,onto);
                 /*
@@ -650,7 +653,7 @@ public class TestForgetting {
             HashSet<Formula>and = map.get(key);
             Formula r = null;
             if(and.size() > 1)
-                r = new And(and);
+                r =  And.getAnd(and);
             for(Formula f: and){
                 r  = f;
             }
@@ -830,6 +833,179 @@ public class TestForgetting {
         System.out.println(tbox.get(0)+" "+tbox.get(tbox.size()-1)+" "+tbox.get(tbox.size()/2)+" "+sum3/tbox.size()+" "+sum);
 
     }
+    public static List<OWLOntology> testLDiff(String dictPath,String nameonto1,String nameonto2)throws Exception{
+        String filelog = "logtemp"+".txt";
+        ArrayList<String> hasRecord = readFile.readFile(dictPath+filelog);
+
+        String title = "fileName_O1,fileName_O2,LogicalAxiomsSize_O1,LogicalAxiomsSize_O2,RolesSize_O1,RolesSize_O2,ConceptsSize_O1,ConceptsSize_O2," +
+                "GCISize_O1,GCISize_O2,GCIRolesSize_O1,GCIRolesSize_O2,GCIConceptSize_O1,GCIConceptSize_O2,newLogicalRoleSize,newLogicalConceptSize,newLogicalRoleSizeOccuredInGCI,newLogicalConceptSizeOccuredInGCI,time," +
+                "memory,timeOut,MemoryOut," +"isSuccess,isExtra,UI_size,explicit_witness,implicit_witness\n";
+        // writeFile.writeFile(dictPath+filelog,title);
+        Converter ct = new Converter();
+        BackConverter bc = new BackConverter();
+        ArrayList<String> now = getFileName(dictPath);
+        List<OWLOntology> ans = new ArrayList<>();
+        for(String path : now) {
+            for (String path2 : now) {
+                if(path.equals(path2)) continue;
+                int hasRead = 0;
+                for (String temp : hasRecord) {
+                    if (temp.contains(path+","+path2)) {
+                        hasRead = 1;
+                        break;
+                    }
+                }
+
+                //if(path.contains("202001")) continue;
+                if(!(path.contains(nameonto1) && path2.contains(nameonto2))) continue;
+
+                if (hasRead == 1) continue;
+                if (!path.contains(".owl") || !path2.contains(".owl")) continue;
+                OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
+                String pathuiNCIT = dictPath+path.substring(path.length()-9,path.length()-4)+path2.substring(path2.length()-9,path2.length()-4)+"temp2.owl";
+                System.out.println(pathuiNCIT);
+                System.out.println(path);
+                System.out.println(path2);
+
+                OWLOntology onto1 = manager1.loadOntologyFromOntologyDocument(new File(path));
+                System.out.println("onto1 load1");
+                // 统计基本的信息
+                int logicalsize1 = onto1.getLogicalAxioms().size();
+                int rolesize1 = onto1.getObjectPropertiesInSignature().size();
+                int conceptsize1 = onto1.getClassesInSignature().size();
+                int GCIsize1 = onto1.getGeneralClassAxioms().size();
+                Set<OWLClassAxiom> GCIs1 = onto1.getGeneralClassAxioms();
+                Set<OWLObjectProperty> GCIroles1 = new LinkedHashSet<>();
+                Set<OWLClass> GCIconcepts1 = new LinkedHashSet<>();
+                for (OWLClassAxiom axiom : GCIs1) {
+                    GCIconcepts1.addAll(axiom.getClassesInSignature());
+                    GCIroles1.addAll(axiom.getObjectPropertiesInSignature());
+                }
+                int GCIrolesize1 = GCIroles1.size();
+                int GCIconceptsize1 = GCIconcepts1.size();
+
+
+                OWLOntologyManager manager2 = OWLManager.createOWLOntologyManager();
+                OWLOntology onto2 = manager2.loadOntologyFromOntologyDocument(new File(path2));
+                System.out.println("onto2 load1");
+                // 统计基本的信息
+                int logicalsize2 = onto2.getLogicalAxioms().size();
+                int rolesize2 = onto2.getObjectPropertiesInSignature().size();
+                int conceptsize2 = onto2.getClassesInSignature().size();
+                int GCIsize2 = onto2.getGeneralClassAxioms().size();
+                Set<OWLClassAxiom> GCIs2 = onto2.getGeneralClassAxioms();
+                Set<OWLObjectProperty> GCIroles2 = new LinkedHashSet<>();
+                Set<OWLClass> GCIconcepts2 = new LinkedHashSet<>();
+                for (OWLClassAxiom axiom : GCIs2) {
+                    GCIconcepts2.addAll(axiom.getClassesInSignature());
+                    GCIroles2.addAll(axiom.getObjectPropertiesInSignature());
+                }
+                int GCIrolesize2 = GCIroles2.size();
+                int GCIconceptsize2 = GCIconcepts2.size();
+
+
+                //data
+
+                Set<OWLClass> concepts1 = onto1.getClassesInSignature();
+                Set<OWLObjectProperty> roles1 = onto1.getObjectPropertiesInSignature();
+
+                Set<OWLClass> concepts2 = onto2.getClassesInSignature();
+                Set<OWLObjectProperty> roles2 = onto2.getObjectPropertiesInSignature();
+
+                //diff data
+
+                Set<OWLClass> c_sig = new LinkedHashSet<>(Sets.difference(concepts2, concepts1));
+                Set<OWLObjectProperty> r_sig = new LinkedHashSet<>(Sets.difference(roles2, roles1));
+                Set<AtomicRole> role_set = ct.getRolesfromObjectProperties(r_sig);
+                Set<AtomicConcept> concept_set = ct.getConceptsfromClasses(c_sig);
+                Set<OWLEntity> forgettingSignatures = new HashSet<>();
+                forgettingSignatures.addAll(r_sig);
+                forgettingSignatures.addAll(c_sig);
+
+                String log = path + "," + path2+","+logicalsize1 + "," +logicalsize2+","+ rolesize1 + "," +rolesize2+","+
+                        conceptsize1 + "," +conceptsize2+","+ GCIsize1 + "," + GCIsize2 + "," +GCIrolesize1 + "," +GCIrolesize2 + "," +
+                        GCIconceptsize1 + ","+ GCIconceptsize2 + ","+ Sets.difference(roles2,roles1).size()+","+Sets.difference(concepts2,concepts1).size()+","+
+                        Sets.intersection(GCIroles2, Sets.difference(roles2,roles1)).size()+","+Sets.intersection(GCIconcepts2, Sets.difference(concepts2,concepts1)).size();
+
+                System.out.println("gci " +GCIsize2);
+                nowLog = log ;
+                System.out.println(nowLog);
+                time = 0;
+                mem = 0;
+                afterForgettingAxiomsSize = 0;
+                Forgetter fg = new Forgetter();
+                isExtra = 0;
+                success = 1;
+                witness_explicit_onto = 0;
+                witness_implicit_onto = 0;
+                elkEntailment.hasChecked_OnO2 = new HashMap<>();
+                AtomicConcept.setDefiner_index(1);
+                SyntacticLocalityModuleExtractor extractor = new SyntacticLocalityModuleExtractor(manager1, onto2, ModuleType.STAR);
+                Set<OWLAxiom> moduleOnto_2OnCommonSig = extractor.extract(Sets.difference(onto2.getSignature(),forgettingSignatures));
+                Set<OWLLogicalAxiom> moduleOnto_2OnCommonSig_logical = new HashSet<>();
+                for (OWLAxiom axiom : moduleOnto_2OnCommonSig) {
+                    if (axiom instanceof OWLLogicalAxiom) {
+                        moduleOnto_2OnCommonSig_logical.add((OWLLogicalAxiom) axiom);
+                    }
+                }
+                System.out.println(moduleOnto_2OnCommonSig_logical.size()+" "+moduleOnto_2OnCommonSig.size());
+                System.out.println("module finished");
+                List<Formula> formulaList = ct.AxiomsConverter(moduleOnto_2OnCommonSig_logical);
+                try {
+                    System.gc();
+                    Runtime r = Runtime.getRuntime();
+                    long mem1 = r.freeMemory();
+                    long time1 = System.currentTimeMillis();
+                    System.out.println("The forgetting task is to eliminate [" + concept_set.size() + "] concept names and ["
+                            + role_set.size() + "] role names from [" + moduleOnto_2OnCommonSig_logical.size() + "] normalized axioms");
+                    List<Formula> ui = fg.Forgetting(r_sig, c_sig, onto2);
+
+                    long time2 = System.currentTimeMillis();
+                    long mem2 = r.freeMemory();
+                    //elkEntailment.check(onto2,ui);
+                    time += (time2 - time1);
+                    mem += (mem1 - mem2);
+                    Set<OWLAxiom> uniform_interpolant = bc.toOWLAxioms(ui);
+                    saveUI(uniform_interpolant,pathuiNCIT);
+                    ans.add(onto1);
+                    ans.add(onto2);
+                    ans.add(bc.toOWLOntology(ui));
+                    afterForgettingAxiomsSize = uniform_interpolant.size();
+
+
+                } catch (OutOfMemoryError e) {
+                    nowLog = nowLog + ",0,0,0,1,0,0,0,0,0\n";
+                    writeFile.writeFile(dictPath + filelog, nowLog);
+                    System.err.println("outofmemory");
+                    e.printStackTrace();
+                    success = 0;
+                } catch (StackOverflowError e) {
+                    nowLog = nowLog + ",0,0,0,2,0,0,0,0,0\n";
+                    writeFile.writeFile(dictPath + filelog, nowLog);
+                    System.err.println("stackoverflow");
+                    success = 0;
+                }
+
+
+
+                if (success == 1 && isExtra == 0) {
+                    nowLog = nowLog + "," + time  + "," + mem / 1024 / 1024  + ",0,0,1,0," + afterForgettingAxiomsSize  + ",";
+                    writeFile.writeFile(dictPath + filelog, nowLog);
+
+
+                }
+
+
+                if (success == 1 && isExtra != 0) {
+                    nowLog = nowLog + ",0,0,0,0,0," + isExtra + ",0,0,0\n";
+                    writeFile.writeFile(dictPath + filelog, nowLog);
+                }
+
+            }
+
+        }
+        return ans;
+    }
     public static void testLethe() throws Exception{
         AlchTBoxForgetter letheForgetter = new AlchTBoxForgetter();
         OWLOntology onto1 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File("/Users/liuzhao/Desktop/experiments/Test_data_for_forgetting/dataSet/Oxford-ISG/PARTIII/00117.owl"));
@@ -844,7 +1020,7 @@ public class TestForgetting {
         OWLOntology onto1 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File("/Users/liuzhao/Desktop/go-2021-02-01.owl"));
         OWLOntology itui = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File("/Users/liuzhao/Desktop/goslim_agr.owl"));
         Set<OWLEntity> symbols = Sets.difference(onto1.getSignature(),itui.getSignature());
-        List<Formula> beginFormulalist = new Converter().OntologyConverter(onto1);
+       // List<Formula> beginFormulalist = new Converter().OntologyConverter(onto1);
         Set<OWLClass> conceptSet = new HashSet<>();
         Set<OWLObjectProperty> roleSet = new HashSet<>();
         System.out.println(symbols.size());
@@ -853,8 +1029,7 @@ public class TestForgetting {
             else if(entity instanceof  OWLObjectProperty) roleSet.add((OWLObjectProperty) entity);
         }
         System.out.println(conceptSet.size()+" "+roleSet.size());
-        Converter ct = new Converter();
-        List<Formula> ui = new Forgetter().Forgetting(ct.getRolesfromObjectProperties(roleSet), ct.getConceptsfromClasses(conceptSet), beginFormulalist, onto1);
+        List<Formula> ui = new Forgetter().Forgetting(roleSet, conceptSet, onto1);
 
 
     }

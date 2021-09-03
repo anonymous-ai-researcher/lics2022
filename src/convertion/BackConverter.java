@@ -7,19 +7,7 @@ import java.util.List;
 import java.util.*;
 
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.EntityType;
-import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLAxiom;
-import org.semanticweb.owlapi.model.OWLClass;
-import org.semanticweb.owlapi.model.OWLClassExpression;
-import org.semanticweb.owlapi.model.OWLDataFactory;
-import org.semanticweb.owlapi.model.OWLEntity;
-import org.semanticweb.owlapi.model.OWLNamedIndividual;
-import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
-import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.model.OWLOntologyManager;
-import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
+import org.semanticweb.owlapi.model.*;
 
 import concepts.AtomicConcept;
 import concepts.BottomConcept;
@@ -430,6 +418,11 @@ public class BackConverter {
 		
 		return scoa;
 	}
+	public OWLLogicalAxiom generateOWLSubClassOfAxiom(OWLClassExpression left,OWLClassExpression right){
+
+		return factory.getOWLSubClassOfAxiom(left,
+				right);
+	}
 
 	public OWLAxiom toOWLAxiom(Formula inclusion) {
 		//RBox
@@ -463,6 +456,13 @@ public class BackConverter {
 		} 
 	 * 
 	 */
+	public OWLObjectProperty toOWLObjectProperty(AtomicRole role){
+		return  factory.getOWLObjectProperty(IRI.create(role.getText()));
+	}
+	public OWLClass toOWLClass(AtomicConcept concept){
+		return factory.getOWLClass(IRI.create(concept.getText()));
+	}
+
 	
 	public OWLClassExpression toOWLClassExpression(Formula formula) {
 
@@ -481,6 +481,8 @@ public class BackConverter {
 			for (Formula conjunct : new_conjunct_set) {
 				conjunct_set.add(toOWLClassExpression(conjunct));
 			}
+			if(conjunct_set.isEmpty())
+				System.out.println("1");
 			return factory.getOWLObjectIntersectionOf(conjunct_set);
 		}
 

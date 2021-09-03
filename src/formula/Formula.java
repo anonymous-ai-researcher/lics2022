@@ -162,7 +162,7 @@ public class  Formula {
 			for (Formula conjunct : this.getSubformulae()) {
 				conjunct_set.add(conjunct.clone());
 			}
-			return new And(conjunct_set);
+			return  And.getAnd(conjunct_set);
 			
 		}
 

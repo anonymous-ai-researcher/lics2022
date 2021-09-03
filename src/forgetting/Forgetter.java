@@ -32,6 +32,8 @@ import extraction.SubsetExtractor;
 import formula.Formula;
 import inference.DefinerIntroducer;
 import inference.Inferencer;
+import inference.simplifier;
+
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import roles.AtomicRole;
 import Test.writeFile.*;
@@ -43,120 +45,72 @@ import javax.swing.event.ListDataEvent;
 
 public class Forgetter {
     public static  int isExtra = 0;
-    public List<AtomicConcept> ordering(Set<AtomicConcept> c_sig,List<Formula> c_sig_list_normalised){
-    	List<Formula> now_c_sig_list_normalised = new ArrayList<>(c_sig_list_normalised);
-		List<AtomicConcept> now = new ArrayList<>(c_sig);
-		FChecker fc = new FChecker();
-		Queue<Pair<Integer,AtomicConcept>> Q = new PriorityQueue<>(new queueComparator());
-		List<AtomicConcept> ans = new ArrayList<>();
-		SubsetExtractor se = new SubsetExtractor();
-		int t = 0;
-		for(AtomicConcept concept : now){
-			int num = 0;
-			List<Formula>pivot_list_normalised = se.getConceptSubset(concept, now_c_sig_list_normalised);
-			num=fc.positive(concept,pivot_list_normalised);
-			num*=fc.negative(concept,pivot_list_normalised);
-			Pair<Integer,AtomicConcept> temp= new Pair<>(num,concept);
-			Q.add(temp);
-			System.out.println(now.size()+" "+t);
-			t++;
 
-		}
-		while(!Q.isEmpty()){
-			Pair<Integer,AtomicConcept> temp=Q.poll();
-			System.out.println(temp.getKey());
-			ans.add(temp.getValue());
-		}
-		return ans;
 
-	}
-	public List<AtomicRole> ordering2(Set<AtomicRole> c_sig,List<Formula> r_sig_list_normalised){
-		List<Formula> now_r_sig_list_normalised = new ArrayList<>(r_sig_list_normalised);
-		List<AtomicRole> now = new ArrayList<>(c_sig);
-		FChecker fc = new FChecker();
-		Queue<Pair<Integer,AtomicRole>> Q = new PriorityQueue<>(new queueComparator2());
-		List<AtomicRole> ans = new ArrayList<>();
-		SubsetExtractor se = new SubsetExtractor();
-		int t = 0;
-		for(AtomicRole role : now){
-			int num = 0;
-			List<Formula>pivot_list_normalised = se.getRoleSubset(role, now_r_sig_list_normalised);
-			num=fc.positive(role,pivot_list_normalised);
-			num*=fc.negative(role,pivot_list_normalised);
-			Pair<Integer,AtomicRole> temp= new Pair<>(num,role);
-			Q.add(temp);
-			System.out.println(now.size()+" "+t);
-			t++;
-
-		}
-		while(!Q.isEmpty()){
-			Pair<Integer,AtomicRole> temp=Q.poll();
-			System.out.println(temp.getKey());
-			ans.add(temp.getValue());
-		}
-		return ans;
-	}
 	public Set<OWLAxiom> ForgettingAPI(Set<OWLObjectProperty> roles, Set<OWLClass> concepts, OWLOntology onto) throws Exception{
-    	Converter ct = new Converter();
-    	Set<AtomicRole> r_sig = ct.getRolesfromObjectProperties(roles);
-    	Set<AtomicConcept> c_sig = ct.getConceptsfromClasses(concepts);
-    	List<Formula> formula_list_normalised = ct.OntologyConverter(onto);
-    	List<Formula> res = Forgetting(r_sig,c_sig,formula_list_normalised,onto);
+    	List<Formula> res = Forgetting(roles,concepts,onto);
     	BackConverter bc = new BackConverter();
     	Set<OWLAxiom> axioms = bc.toOWLAxioms(res);
     	return axioms;
 	}
-	public List<Formula> Forgetting(Set<AtomicRole> r_sig, Set<AtomicConcept> c_sig,
-			List<Formula> formula_list_normalised, OWLOntology onto) throws Exception {
+
+	/**
+	 *
+	 * @param roles 要遗忘的role
+	 * @param concepts 要遗忘的concept
+	 * @param onto 这个就是读入的onto不需要，传入之前不需要做任何操作，传入后，需要删除不是ELH的axioms，再形成本体。
+	 * @return
+	 * @throws Exception
+	 */
+	public List<Formula> Forgetting(Set<OWLObjectProperty> roles, Set<OWLClass> concepts, OWLOntology onto) throws Exception {
+		DefinerIntroducer di = new DefinerIntroducer();
+		SubsetExtractor se = new SubsetExtractor();
+		Inferencer inf = new Inferencer();
+		FChecker fc = new FChecker();
+		simplifier sp = new simplifier();
+		Converter ct = new Converter();
+		BackConverter bc = new BackConverter();
+
+
+
+		//提取module
+		Set<OWLEntity> forgettingSignatures = new HashSet<>();
+		forgettingSignatures.addAll(roles);
+		forgettingSignatures.addAll(concepts);
+		Set<OWLLogicalAxiom> moduleOnto_2OnForgettingSig = sp.extractModule(onto,Sets.difference(onto.getSignature(), forgettingSignatures));
+		System.out.println("module size "+moduleOnto_2OnForgettingSig.size());
+		//优化：1.defined concepts指的是只出现在equiv或inclusion左边的concept names，对于defined concept A，如果A
+		//涉及的axiom只有1个，则直接删掉涉及的axiom， 如果A涉及到的axioms有多个，就先用equiv的右边去替换inclusion中的A，再删除掉equiv
+		//2.替换所有的axiom中的 Base name（属于forgettingsignature）为T
+
+		moduleOnto_2OnForgettingSig = sp.eliminateDefinedConceptsAndBasedConcepts(moduleOnto_2OnForgettingSig,concepts);
+
+		//list转换 转换过程中会删除掉不是ELH的axiom,同时形成新的onto
+		List<Formula> formula_list_normalised = ct.AxiomsConverter(moduleOnto_2OnForgettingSig);
+		//onto =bc.toOWLOntology(formula_list_normalised);
+
+		//做一些不必要的初始化 防止bug
         AtomicConcept.definer_indexInit();
         TestForgetting.isExtra = 0;
         Forgetter.isExtra = 0;
-		System.out.println("The Forgetting Starts:");
-        OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
-        //OWLOntology onto = manager.createOntology(onto2.getAxioms());// it is a copy of onto2
-		//OWLOntology onto  = manager.copyOntology(onto2, OntologyCopy.DEEP);
-		DefinerIntroducer di = new DefinerIntroducer();
-		//Simplifier pp = new Simplifier();
-		SubsetExtractor se = new SubsetExtractor();
-		BackConverter bc = new BackConverter();
-		Inferencer inf = new Inferencer();
-		FChecker fc = new FChecker();
-		OWLReasoner      hermit = new ReasonerFactory().createReasoner(onto);
 
+		//初始化reasoner
+		System.out.println("hermit begin");
+		//OWLReasoner  hermit = new ReasonerFactory().createReasoner(onto);
+		OWLReasoner  hermit = new Reasoner(new Configuration(),onto);
+		System.out.println("hermit finished");
+
+		//forgetting signature数据结构转换
+		Set<AtomicRole> r_sig = ct.getRolesfromObjectProperties(roles);
+		Set<AtomicConcept> c_sig = ct.getConceptsfromClasses(concepts);
+
+		System.out.println("The Forgetting Starts:");
+		System.out.println("The forgetting task is to eliminate [" + c_sig.size() + "] concept names and ["
+				+ r_sig.size() + "] role names from [" + formula_list_normalised.size() + "] normalized axioms");
 		if (!r_sig.isEmpty()) {
 			List<Formula> r_sig_list_normalised = se.getRoleSubset(r_sig, formula_list_normalised);
 			List<Formula> pivot_list_normalised = null;
 			//List<AtomicRole> r_sig_ordering = ordering2(r_sig,r_sig_list_normalised);
-/*
-			int nn = 0;
-			for(AtomicRole role:r_sig){
-				System.out.println(role);
-				nn++;
-				int positive = 0;
-				int negative = 0;
-				int equiv = 0;
-				for(Formula formula : r_sig_list_normalised){
-
-					if(formula.toString().contains(role.toString())){
-						System.out.println(role+" ///  "+formula);
-						if(formula instanceof Inclusion){
-							if(formula.getSubFormulas().get(0).toString().contains(role.toString())){
-								negative++;
-							}
-							else{
-								positive++;
-							}
-						}
-
-
-					}
-				}
-				System.out.println(nn+" "+positive+" "+negative+" "+equiv+"-------------");
-				System.out.println(444);
-			}
-
- */
-
 
 			int i = 1;
 			for (AtomicRole role : r_sig) {
@@ -182,7 +136,7 @@ public class Forgetter {
 			List<Formula> c_sig_list_normalised = se.getConceptSubset(c_sig, formula_list_normalised);
 			List<Formula> pivot_list_normalised = null;
 			int j = 1;
-			List<AtomicConcept> c_sig_ordering = ordering(c_sig,c_sig_list_normalised);
+			List<AtomicConcept> c_sig_ordering = sp.ordering(c_sig,c_sig_list_normalised);
 			for (AtomicConcept concept : c_sig_ordering) {
 			//for (AtomicConcept concept : c_sig) {
 				System.out.println("Forgetting Concept [" + j + "] (of "+c_sig_ordering.size()+") = " + concept);
@@ -202,7 +156,6 @@ public class Forgetter {
 					c_sig_list_normalised.addAll(pivot_list_normalised);
 				}
 				c_sig_list_normalised = new ArrayList<>(new HashSet<>(c_sig_list_normalised));
-
 
 
 			}
@@ -321,7 +274,9 @@ public class Forgetter {
 						di.definer_set.remove(concept);
 
 					} else {
+						System.out.println("before introduced " +pivot_list_normalised);
 						pivot_list_normalised = di.introduceDefiners(concept, pivot_list_normalised);
+						System.out.println("after introduced " +pivot_list_normalised);
 						pivot_list_normalised = inf.combination_A(concept, pivot_list_normalised ,onto,hermit);
 						d_sig_list_normalised.addAll(pivot_list_normalised);
 						di.definer_set.remove(concept);
@@ -380,40 +335,10 @@ public class Forgetter {
 		OWLOntology prerserve_cig = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(ontoPath));
 		OWLOntology onto = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File("/Users/liuzhao/Desktop/go.owl_denormalised.owl"));
 		Set<OWLClass> cig = prerserve_cig.getClassesInSignature();
-		Set<OWLEntity> tempcig = new LinkedHashSet<>();
-		tempcig.addAll(cig);
-		Converter ct = new Converter();
-		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
-
-		SyntacticLocalityModuleExtractor extractor = new SyntacticLocalityModuleExtractor(manager, onto, ModuleType.BOT);
-		Set<OWLAxiom> moduleOnto_2OnForgettingSig = extractor.extract(tempcig);
-		Set<OWLLogicalAxiom>moduleOnto_2_OnCommonSig_logical = new HashSet<>();
-
-		for(OWLAxiom axiom : moduleOnto_2OnForgettingSig){
-			if(axiom instanceof OWLLogicalAxiom){
-				moduleOnto_2_OnCommonSig_logical.add((OWLLogicalAxiom)axiom);
-			}
-		}
-		List<Formula> formula_list = ct.AxiomsConverter(moduleOnto_2_OnCommonSig_logical);
 		Set<OWLClass> forgettingcig = Sets.difference(onto.getClassesInSignature(),cig);
-		Set<AtomicConcept> concepts = ct.getConceptsfromClasses(forgettingcig);
-		Set<AtomicRole> roles = new LinkedHashSet<>();
+		Set<OWLObjectProperty> roles = new LinkedHashSet<>();
 		Forgetter fg = new Forgetter();
-		List<Formula> temp = fg.Forgetting(roles,concepts,formula_list,onto);
+		List<Formula> temp = fg.Forgetting(roles,forgettingcig,onto);
 		System.out.println(temp.size());
-	}
-}
-class queueComparator implements  Comparator<Pair<Integer,AtomicConcept>>{
-	public int compare(Pair<Integer,AtomicConcept> e1, Pair<Integer,AtomicConcept> e2) {
-		return e1.getKey() - e2.getKey();//升序
-		//return e2.getKey() - e1.getKey();//降序
-
-	}
-}
-class queueComparator2 implements  Comparator<Pair<Integer,AtomicRole>>{
-	public int compare(Pair<Integer,AtomicRole> e1, Pair<Integer,AtomicRole> e2) {
-		return e1.getKey() - e2.getKey();//升序
-		//return e2.getKey() - e1.getKey();//降序
-
 	}
 }
