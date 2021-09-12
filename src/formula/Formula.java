@@ -122,9 +122,9 @@ public class  Formula {
 					&& this.getSubFormulas().get(1).equals(inc.getSubFormulas().get(1));
 		} else if (this instanceof And && object instanceof And) {
 			And and = (And) object;
-			return this.getSubFormulas().containsAll(and.getSubFormulas())
-					&& and.getSubFormulas().containsAll(this.getSubFormulas())
-					&& this.getSubFormulas().size() == and.getSubFormulas().size();
+			return this.getSubformulae().containsAll(and.getSubformulae())
+					&& and.getSubformulae().containsAll(this.getSubformulae())
+					&& this.getSubformulae().size() == and.getSubformulae().size();
 		} else {
 			return false;
 		}

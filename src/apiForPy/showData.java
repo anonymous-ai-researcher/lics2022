@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import forgetting.Fame;
 import forgetting.Forgetter;
 import forgetting.LDiff;
+import forgetting.saveMetrics;
 import formula.Formula;
 import inference.DefinerIntroducer;
 import inference.Inferencer;
@@ -199,7 +200,7 @@ public class showData {
         for(AtomicConcept c : forgetConceptList){
             concepts.add(bc.toOWLClass(c));
         }
-        List<Formula> results = forget.Forgetting(roles,concepts,ontology);
+        List<Formula> results = forget.Forgetting(roles,concepts,ontology,new saveMetrics());
         ans.add( results);
         List<Integer> success = new ArrayList<>();
         success.add(1-Forgetter.isExtra);

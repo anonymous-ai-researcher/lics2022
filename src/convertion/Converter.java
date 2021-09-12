@@ -8,6 +8,7 @@ package convertion;
 import concepts.AtomicConcept;
 import concepts.TopConcept;
 import connectives.And;
+import connectives.Equivalence;
 import connectives.Exists;
 import connectives.Inclusion;
 import formula.Formula;
@@ -172,6 +173,37 @@ public class Converter {
 		System.out.println("Convertion Duration = " + (endTime1 - startTime1) + " millis");
 		return formula_list;
 	}
+	public List<Formula> AxiomConverter_rightAnd(OWLAxiom owlAxiom){
+		if(owlAxiom instanceof OWLEquivalentClassesAxiom){
+			OWLEquivalentClassesAxiom owlECA = (OWLEquivalentClassesAxiom) owlAxiom;
+			Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms = owlECA.asOWLSubClassOfAxioms();
+			List<Formula> converted = new ArrayList<>();
+			Formula f1 = null, f2 =null;
+			for (OWLSubClassOfAxiom owlSCOA : owlSubClassOfAxioms) {
+				f1 = ClassExpressionConverter(owlSCOA.getSubClass());
+				f2 = ClassExpressionConverter(owlSCOA.getSuperClass());
+				break;
+				//converted.addAll(AxiomConverter(owlSCOA));
+			}
+			if(f1 == null || f2 == null) return  Collections.emptyList();
+			Formula temp = new Equivalence(f1,f2);
+			converted.add(temp);
+
+			return converted;
+		}else{
+			List<Formula> temp_list = AxiomConverter(owlAxiom);
+			temp_list = RightSubformulasConverter(temp_list);
+			return temp_list;
+		}
+
+	}
+	public List<Formula> AxiomConverter_rightAnd(Set<OWLLogicalAxiom> set){
+		List<Formula> temp_list = new ArrayList<>();
+		for(OWLAxiom axiom : set){
+			temp_list.addAll(AxiomConverter_rightAnd(axiom));
+		}
+		return temp_list;
+	}
 	
 	public List<Formula> AxiomsConverter(Set<OWLLogicalAxiom> owlAxiom_set) {
 
@@ -182,6 +214,7 @@ public class Converter {
 		for (OWLAxiom owlAxiom : owlAxiom_set) {
 			List<Formula> temp_list = AxiomConverter(owlAxiom);
 			temp_list = RightSubformulasConverter(temp_list);
+			//右边and拆开
 			for (Formula formula : temp_list) {
 				Formula subsumer = formula.getSubFormulas().get(1);
 				if (subsumer instanceof And) {
@@ -199,12 +232,11 @@ public class Converter {
 					formula_list.add(formula);
 				}
 			}
-			//formula_list.addAll(temp_list);
 		}
 		
 		long endTime1 = System.currentTimeMillis();
 		
-		System.out.println("Convertion Duration = " + (endTime1 - startTime1) + " millis");
+	//	System.out.println("Convertion Duration = " + (endTime1 - startTime1) + " millis");
 
 		return formula_list;
 	}
@@ -220,7 +252,8 @@ public class Converter {
 
 		return formula_list;
 	}*/
-	
+
+
 		
 	private List<Formula> AxiomConverter(OWLAxiom axiom) {
 		if (axiom instanceof OWLSubClassOfAxiom) {

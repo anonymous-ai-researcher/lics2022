@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.*;
 
+import connectives.Equivalence;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 
@@ -424,22 +425,42 @@ public class BackConverter {
 				right);
 	}
 
-	public OWLAxiom toOWLAxiom(Formula inclusion) {
-		//RBox
-		Formula subsumee = inclusion.getSubFormulas().get(0);
-		
-		if (subsumee instanceof AtomicRole) {
-			return factory.getOWLSubObjectPropertyOfAxiom(
-					toOWLObjectPropertyExpression(inclusion.getSubFormulas().get(0)),
-					toOWLObjectPropertyExpression(inclusion.getSubFormulas().get(1)));
-		//ABox
-		} else {
-			return factory.getOWLSubClassOfAxiom(toOWLClassExpression(inclusion.getSubFormulas().get(0)),
-					toOWLClassExpression(inclusion.getSubFormulas().get(1)));
+	public OWLAxiom toOWLAxiom(Formula formula) {
+		if(formula instanceof Inclusion) {
+			//RBox
+			Formula subsumee = formula.getSubFormulas().get(0);
+
+			if (subsumee instanceof AtomicRole) {
+				return factory.getOWLSubObjectPropertyOfAxiom(
+						toOWLObjectPropertyExpression(formula.getSubFormulas().get(0)),
+						toOWLObjectPropertyExpression(formula.getSubFormulas().get(1)));
+				//ABox
+			} else {
+				return factory.getOWLSubClassOfAxiom(toOWLClassExpression(formula.getSubFormulas().get(0)),
+						toOWLClassExpression(formula.getSubFormulas().get(1)));
+			}
+		}else if(formula instanceof Equivalence){
+			//RBox
+			Formula subsumee = formula.getSubFormulas().get(0);
+
+			if (subsumee instanceof AtomicRole) {
+				return factory.getOWLEquivalentObjectPropertiesAxiom(
+						toOWLObjectPropertyExpression(formula.getSubFormulas().get(0)),
+						toOWLObjectPropertyExpression(formula.getSubFormulas().get(1)));
+				//ABox
+			} else {
+				return factory.getOWLEquivalentClassesAxiom(toOWLClassExpression(formula.getSubFormulas().get(0)),
+						toOWLClassExpression(formula.getSubFormulas().get(1)));
+			}
+		}
+		else{
+			assert false : "Unsupported Formula: " + formula;
+			return null;
 		}
 
 	}
-	
+
+
 	/*
 	 * else if (inclusion.getSubFormulas().get(0) instanceof Individual) {
 			if (inclusion.getSubFormulas().get(1) instanceof Exists

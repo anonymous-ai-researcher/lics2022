@@ -38,7 +38,9 @@ public class elkEntailment {
         int all = ui.size();
         int i = 0 ;
         for(Formula formula : ui){
+
             if(Sets.intersection(formula.get_c_sig(),conceptSet).size() != 0 || Sets.intersection(formula.get_r_sig(),roleSet).size() != 0){
+                System.out.println(formula);
                 throw new Exception("there exits new symbols!");
 
             }

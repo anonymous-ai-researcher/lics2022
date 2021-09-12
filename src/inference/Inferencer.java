@@ -5,6 +5,7 @@ import java.text.Normalizer;
 import java.util.*;
 
 import checkTautology.TautologyChecker;
+import connectives.Equivalence;
 import elk.elkEntailment;
 import org.semanticweb.HermiT.Configuration;
 import org.semanticweb.HermiT.Reasoner;
@@ -91,7 +92,7 @@ public class Inferencer {
 		EChecker ec = new EChecker();
 
 		for (Formula formula : formula_list) {
-
+			if(tc.isTautology(formula)) continue;
 			Formula subsumee = formula.getSubFormulas().get(0);
 			Formula subsumer = formula.getSubFormulas().get(1);
 			if (!ec.isPresent(concept, formula)) {
@@ -562,7 +563,7 @@ public class Inferencer {
 		//reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
 
 		for (Formula formula : formula_list) {
-			
+			if(tc.isTautology(formula)) continue;
 			Formula subsumee = formula.getSubFormulas().get(0);
 			Formula subsumer = formula.getSubFormulas().get(1);
 
@@ -772,7 +773,11 @@ public class Inferencer {
 			return new Inclusion(AckermannReplace(role, toBeReplaced.getSubFormulas().get(0), definition),
 					AckermannReplace(role, toBeReplaced.getSubFormulas().get(1), definition));
 
-		} else if (toBeReplaced instanceof And) {
+		} else if(toBeReplaced instanceof Equivalence){
+			Formula t1 = AckermannReplace(role, toBeReplaced.getSubFormulas().get(0), definition);
+			Formula t2 = AckermannReplace(role, toBeReplaced.getSubFormulas().get(1), definition);
+			return new Equivalence(t1, t2);
+		}else if (toBeReplaced instanceof And) {
 			Set<Formula> conjunct_list = toBeReplaced.getSubformulae();
 			Set<Formula> conjunct_set = new LinkedHashSet<>();
 			for (Formula conjunct : conjunct_list) {
@@ -818,7 +823,13 @@ public class Inferencer {
 			Formula t2 = AckermannReplace(concept, toBeReplaced.getSubFormulas().get(1), definition);
 			return new Inclusion(t1, t2);
 
-		} else if (toBeReplaced instanceof And) {
+		} else if(toBeReplaced instanceof Equivalence){
+			Formula t1 = AckermannReplace(concept, toBeReplaced.getSubFormulas().get(0), definition);
+			Formula t2 = AckermannReplace(concept, toBeReplaced.getSubFormulas().get(1), definition);
+			return new Equivalence(t1, t2);
+		}
+
+		else if (toBeReplaced instanceof And) {
 			//System.out.println(5);
 
 			Set<Formula> conjunct_set = new LinkedHashSet<>();

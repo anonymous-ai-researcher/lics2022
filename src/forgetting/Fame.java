@@ -44,7 +44,7 @@ public class Fame {
 		for(AtomicConcept c : c_sig){
 			concepts.add(bc.toOWLClass(c));
 		}
-		List<Formula> forgetting_solution = ft.Forgetting(roles, concepts, onto);
+		List<Formula> forgetting_solution = ft.Forgetting(roles, concepts, onto,new saveMetrics());
 		
 	
 		return forgetting_solution;

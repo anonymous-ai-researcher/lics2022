@@ -1,6 +1,7 @@
 package forgetting;
 
 import BackTrack.BackTrack;
+import Test.TestForgetting;
 import formula.Formula;
 
 
@@ -13,7 +14,7 @@ import roles.AtomicRole;
 import concepts.AtomicConcept;
 import convertion.BackConverter;
 import convertion.Converter;
-
+import inference.simplifier;
 //import org.semanticweb.HermiT.Reasoner;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.IRIDocumentSource;
@@ -89,14 +90,15 @@ public class LDiff {
 		System.out.println("The forgetting task is to eliminate [" + c_sig.size() + "] concept names and ["
 				+ r_sig.size() + "] role names ");
 		long startTime_1 = System.currentTimeMillis();
-		List<Formula> uniform_interpolantList = forgetter.Forgetting(r_sig, c_sig, onto_2);
+		List<Formula> uniform_interpolantList = forgetter.Forgetting(r_sig, c_sig, onto_2,new saveMetrics());
 		long endTime_1 = System.currentTimeMillis();
 		System.out.println("Forgetting Duration = " + (endTime_1 - startTime_1) + " millis");
-		elkEntailment.check(onto_2,uniform_interpolantList,ct.getRolesfromObjectProperties(r_sig),ct.getConceptsfromClasses(c_sig));
+	//	elkEntailment.check(onto_2,uniform_interpolantList,ct.getRolesfromObjectProperties(r_sig),ct.getConceptsfromClasses(c_sig));
 
+		Set<OWLAxiom> uniform_interpolant = bc.toOWLAxioms(uniform_interpolantList);
 		List<Formula> onto_2_formula_list = ct.OntologyConverter(onto_2);
-		Set<Formula> uniform_interpolantSet = Sets.difference(new HashSet<>(uniform_interpolantList),new HashSet<>(onto_2_formula_list));
-		Set<OWLAxiom> uniform_interpolant = bc.toOWLAxioms(new ArrayList<>(uniform_interpolantSet));
+		Set<OWLAxiom> onto_2_axiom_set = bc.toOWLAxioms(onto_2_formula_list);
+		uniform_interpolant.removeAll(onto_2_axiom_set);
 		// as we compute the uniform_interpolant on module, we must add the axioms in O2 with no new signatures because they may be explicit witness.
 		for(OWLLogicalAxiom axiom : onto_2.getLogicalAxioms()){
 			if(Sets.intersection(axiom.getSignature(),forgettingSignatures).size() == 0 ){
@@ -116,10 +118,11 @@ public class LDiff {
 		long startTime_2 = System.currentTimeMillis();
 		System.out.println("ui size: "+uniform_interpolant.size());
 		System.gc();
-		Reasoner reasoner1= new Reasoner(new Configuration(),onto_1);
+		OWLReasoner  reasoner1 = new ReasonerFactory().createReasoner(onto_1);
+		int i = 0;
 		for (OWLAxiom axiom : uniform_interpolant) {
-			if(!elkEntailment.entailed(reasoner1,axiom)){
-				//if (!reasoner.isEntailed(axiom)) {
+			//if(!elkEntailment.entailed(reasoner1,axiom)){
+			if (!reasoner1.isEntailed(axiom)) {
 				manager.applyChange(new AddAxiom(witness_complete_onto, axiom));
 				System.out.println("witness_complete = " + axiom);
 				if (onto_2.getAxioms().contains(axiom)) {
@@ -130,12 +133,18 @@ public class LDiff {
 					System.out.println("witness_implicit = " + axiom);
 				}
 			}
+			System.out.println(i++ + " " + uniform_interpolant.size());
 		}
 		long endTime_2 = System.currentTimeMillis();
 		System.out.println("Entailment Duration = " + (endTime_2 - startTime_2) + " millis");
 		ans.add(witness_complete_onto);ans.add(witness_explicit_onto);ans.add(witness_implicit_onto);
+
 		reasoner1.dispose();
+
+
 		return ans;
+
+
 
 
 	}
@@ -169,38 +178,33 @@ public class LDiff {
 	public static void main(String[] args)
 			throws Exception {
 
-
+		String filePath1 = "/Users/Desktop/NCBOcrawler/GO/go1803.owl";
+		String filePath2 = "/Users/Desktop/NCBOcrawler/GO/go1703.owl";
 		OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
-
-		System.out.println("Onto_1 Path: ");
-		String filePath1 = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/ontology_202003.owl";
 		OWLOntology onto_1 = manager1.loadOntologyFromOntologyDocument(new File(filePath1));
-
 		OWLOntologyManager manager2 = OWLManager.createOWLOntologyManager();
-		System.out.println("Onto_2 Path: ");
-		String filePath2 = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/ontology_201607.owl";
 		OWLOntology onto_2 = manager2.loadOntologyFromOntologyDocument(new File(filePath2));
-
 		LDiff lDiff = new LDiff();
-		lDiff.LDiff(onto_1,onto_2);
+		lDiff.compute_LDiff(onto_1,onto_2,"/Users/Desktop/NCBOcrawler");
+
 
 
 	/*
 		OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
 
 		System.out.println("Onto_1 Path: ");
-		String filePath1 = "/Users/liuzhao/nju/NCBO/data/snomedcttest/snomed_ct_intl_20170131.owl/snomed_ct_intl_20170131.owl";
+		String filePath1 = "/Users/NCBO/data/snomedcttest/snomed_ct_intl_20170131.owl/snomed_ct_intl_20170131.owl";
 		OWLOntology onto_1 = manager1.loadOntologyFromOntologyDocument(new File(filePath1));
 
 		OWLOntologyManager manager2 = OWLManager.createOWLOntologyManager();
 		System.out.println("Onto_2 Path: ");
-		String filePath2 = "/Users/liuzhao/nju/NCBO/data/snomedcttest/snomed_ct_intl_20170731.owl/snomed_ct_intl_20170731.owl";
+		String filePath2 = "/Users/NCBO/data/snomedcttest/snomed_ct_intl_20170731.owl/snomed_ct_intl_20170731.owl";
 		OWLOntology onto_2 = manager2.loadOntologyFromOntologyDocument(new File(filePath2));
 
 
 		OWLOntologyManager manager3 = OWLManager.createOWLOntologyManager();
 		System.out.println("ui Path: ");
-		String filePath3 = "/Users/liuzhao/nju/NCBO/data/snomedcttest/snomed_ct_intl_20170731.owl/ui.owl";
+		String filePath3 = "/Users/data/snomedcttest/snomed_ct_intl_20170731.owl/ui.owl";
 		OWLOntology ui = manager3.loadOntologyFromOntologyDocument(new File(filePath3));
 		System.out.println(ui.getLogicalAxioms().size());
 		System.out.println(onto_1.getLogicalAxioms().size());

@@ -69,7 +69,7 @@ public class DefinerIntroducer {
 
 			output_list.addAll(re);
 			if(re.size() <= 1) continue;
-			/*
+
 			System.out.println("original formla : " );
 			System.out.println(formula+" "+concept);
 			System.out.println("after introduced :");
@@ -79,7 +79,7 @@ public class DefinerIntroducer {
 			}
 			System.out.println("--------------------" );
 
-			 */
+
 
 
 
@@ -508,7 +508,7 @@ public class DefinerIntroducer {
 				}
 				if(tag == 0){
 
-					throw new Exception();
+				//	throw new Exception();
 				}
 			}
 
