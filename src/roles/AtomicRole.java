@@ -38,8 +38,7 @@ public class AtomicRole extends RoleExpression implements Comparable<AtomicRole>
 	
 	@Override
 	public int compareTo(AtomicRole atomicRole) {
-		int i = this.getText().compareTo(atomicRole.getText());
-		return i;
+		return  this.getText().compareTo(atomicRole.getText());
 	}
 
 }

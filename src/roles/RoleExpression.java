@@ -11,7 +11,7 @@ import formula.Formula;
 
 /**
  *
- * @author Yizheng
+ * @author Yizheng zhaliu
  */
 public class RoleExpression extends Formula {
 
