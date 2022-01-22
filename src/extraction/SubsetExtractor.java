@@ -26,7 +26,7 @@ public class SubsetExtractor {
 			if (c_set.contains(concept)) {
 				//System.out.println("pivot concept = " + formula);
 				//System.out.println("Formula 1 [" + i + "] = " + formula);
-				output_list.add(formula);
+		 		output_list.add(formula);
 				formula_list.remove(i);
 				i--;
 			}

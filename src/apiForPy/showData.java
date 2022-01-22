@@ -31,7 +31,7 @@ import java.util.*;
 
 public class showData {
     static{
-        System.out.println("api for py");
+        System.out.println("api  for py");
     }
     public void INIT(){
         //DefinerIntroducer.owldefiner_set = new LinkedHashSet<>();;

@@ -54,7 +54,7 @@ public class Converter {
 	public AtomicConcept getConceptfromClass(OWLEntity owlClass) {
 		return new AtomicConcept(owlClass.getIRI().toString());
 	}
-	
+
 	public AtomicRole getRoleFromObjectProperty(OWLEntity owlObjectProperty) {		
 		return new AtomicRole(owlObjectProperty.getIRI().toString());
 	}

@@ -24,7 +24,7 @@ public class Simplifier {
 
 	public Simplifier() {
 
-	}
+	} 
 				
 	/*public List<Formula> getSimplifiedForm(List<Formula> input_list) throws CloneNotSupportedException {
 

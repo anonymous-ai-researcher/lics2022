@@ -17,7 +17,7 @@ public class Negation extends ConceptExpression {
 	public Negation() {
 		super();
 	}
-	
+
 	public Negation(Formula formula) {
 		super(formula);
 	}
