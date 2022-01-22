@@ -1,7 +1,9 @@
 package Test;
 import java.io.*;
+import java.lang.ref.Reference;
 import java.util.*;
 
+import checkTautology.TautologyChecker;
 import checkexistence.EChecker;
 import checkfrequency.FChecker;
 import com.google.common.collect.Sets;
@@ -11,8 +13,13 @@ import convertion.BackConverter;
 import convertion.Converter;
 import forgetting.*;
 import formula.Formula;
+import inference.Inferencer;
 import inference.simplifier;
 import javafx.fxml.LoadException;
+import org.apache.commons.lang3.builder.ToStringExclude;
+import org.checkerframework.checker.units.qual.A;
+import org.checkerframework.checker.units.qual.C;
+import org.junit.Test;
 import org.semanticweb.HermiT.*;
 import org.semanticweb.HermiT.Reasoner;
 import org.semanticweb.owlapi.apibinding.OWLManager;
@@ -32,6 +39,8 @@ import uk.ac.man.cs.lethe.forgetting.AlchTBoxForgetter;
 import javax.swing.text.html.parser.Entity;
 
 public class TestForgetting {
+
+    static int a = 3;
     public static ArrayList<String> getFileName(String path){
         ArrayList<String> listFileName = new ArrayList<>();
         File file =new File(path);
@@ -71,6 +80,8 @@ public class TestForgetting {
         List backList = null;
         backList = new ArrayList<OWLObjectProperty>();
         Random random = new Random();
+        Set<Integer> hasVisited = new HashSet<>();
+
         int backSum = 0;
         if (list.size() >= count) {
             backSum = count;
@@ -80,6 +91,11 @@ public class TestForgetting {
         for (int i = 0; i < backSum; i++) {
 //			随机数的范围为0-list.size()-1
             int target = random.nextInt(list.size());
+            if(hasVisited.contains(target)){
+                i--;
+                continue;
+            }
+            hasVisited.add(target);
             backList.add(list.get(target));
         }
         return backList;
@@ -88,6 +104,7 @@ public class TestForgetting {
         List backList = null;
         backList = new ArrayList<OWLClass>();
         Random random = new Random();
+        Set<Integer> hasVisited = new HashSet<>();
         int backSum = 0;
         if (list.size() >= count) {
             backSum = count;
@@ -97,8 +114,14 @@ public class TestForgetting {
         for (int i = 0; i < backSum; i++) {
 //			随机数的 ≤./范围为0-list.size()-1
             int target = random.nextInt(list.size());
+            if(hasVisited.contains(target)){
+                i--;
+                continue;
+            }
+            hasVisited.add(target);
             backList.add(list.get(target));
         }
+        //System.out.println(hasVisited);
         return backList;
     }
     public static int afterForgettingAxiomsSize = 0;
@@ -106,7 +129,9 @@ public class TestForgetting {
     public static OWLOntology onto = null;
     public static double time = 0;
     public static int isExtra = 0;
+    public static  int hasFinished = 0;
     public static double mem = 0;
+    public static  List<Double> depthMeanMedian = new ArrayList<>();
     public static int success = 0;
     public static  int witness_explicit_onto = 0;
     public static  int witness_implicit_onto  = 0;
@@ -122,8 +147,66 @@ public class TestForgetting {
         }
         return 0;
     }
+    public static Map<AtomicConcept,Integer> Depth(List<Formula> formulas){
+        int depth = 0;
+        Map<AtomicConcept,Integer> depthMap = new HashMap<>();
+        for(Formula formula : formulas){
+            Depth(formula,0,depthMap);
+        }
+        return depthMap;
+
+    }
+    public static  void Depth(Formula formula,int nowdepth, Map<AtomicConcept,Integer> depthMap){
+        if(formula instanceof AtomicConcept){
+            AtomicConcept concept = (AtomicConcept) formula;
+            int now = depthMap.getOrDefault(concept,1);
+            now = Math.max(now,nowdepth);
+            depthMap.put(concept,now);
+            return;
+        }
+        if(formula instanceof Equivalence || formula instanceof Inclusion){
+            Depth(formula.getSubFormulas().get(0),nowdepth,depthMap);
+            Depth(formula.getSubFormulas().get(1),nowdepth,depthMap);
+        }
+        if(formula instanceof Exists){
+            Depth(formula.getSubFormulas().get(1),nowdepth+1,depthMap);
+        }
+        if(formula instanceof And){
+            for(Formula temp : ((And)formula).getSubformulae()){
+                Depth(temp,nowdepth,depthMap);
+            }
+        }
+    }
+    public static  List<Double> getDepthMeanMedian(List<Formula>beginFormulalist, Set<OWLClass>conceptSet){
+        Map<AtomicConcept,Integer> depthMap = Depth(beginFormulalist);
+        List<Integer> depths = new ArrayList<>();
+        Converter ct = new Converter();
+        int sum = 0;
+        for(OWLClass c : conceptSet){
+            AtomicConcept concept =  ct.getConceptfromClass(c);
+            int temp = depthMap.getOrDefault(concept,0);
+            depths.add(temp);
+            sum += temp;
+        }
+        Collections.sort(depths);
+        List<Double> ans = new ArrayList<>();
+        double depthMean = 0, depthMedian = 0;
+        if(conceptSet.size() != 0){
+            depthMean = sum*1.0/conceptSet.size();
+            depthMedian = depths.get(depths.size()/2);
+            ans.add(depthMean);
+            ans.add(depthMedian);
+            ans.add(Collections.max(depths)*1.0);
+        }else{
+            ans.add(0.0);
+            ans.add(0.0);
+            ans.add(0.0);
+        }
+
+        return ans;
+    }
     public static List<OWLOntology> test3(String dictPath,String nameonto1,String nameonto2)throws Exception {
-        String filelog = "logtemp" + ".txt";
+        String filelog = "logAAAI22rebuttal2" + ".txt";
         ArrayList<String> hasRecord = readFile.readFile(dictPath + filelog);
 
         String title = "fileName_O1,fileName_O2,LogicalAxiomsSize_O1,LogicalAxiomsSize_O2,RolesSize_O1,RolesSize_O2,ConceptsSize_O1,ConceptsSize_O2," +
@@ -151,7 +234,7 @@ public class TestForgetting {
                 if (hasRead == 1) continue;
                 if (!path.contains(".owl") || !path2.contains(".owl")) continue;
                 OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
-                String pathuiNCIT = dictPath + path.substring(path.length() - 9, path.length() - 4) + path2.substring(path2.length() - 9, path2.length() - 4) + "temp2.owl";
+                String pathuiNCIT = dictPath + path.substring(path.length() - 9, path.length() - 4) + path2.substring(path2.length() - 9, path2.length() - 4) + "AAAI22rebuttal.owl";
                 System.out.println(pathuiNCIT);
                 System.out.println(path);
                 System.out.println(path2);
@@ -296,6 +379,7 @@ public class TestForgetting {
     }
     public static OWLOntology LetheForgetting(String dictPath,String filelog,String log,Set<OWLEntity> symbols,OWLOntology onto) throws Exception{
 
+        /*
         final ExecutorService exec = Executors.newSingleThreadExecutor();
         AlchTBoxForgetter LetheForgetter = new AlchTBoxForgetter();
         Callable<Integer> task = new Callable<Integer>() {
@@ -308,6 +392,8 @@ public class TestForgetting {
                     Runtime r = Runtime.getRuntime();
                     long mem1 = r.freeMemory();
                     List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
+
+
                     long time1 = System.currentTimeMillis();
                     resultOWLOntology = LetheForgetter.forget(onto,symbols);
                     isExtra = isExtra(resultOWLOntology);
@@ -335,14 +421,20 @@ public class TestForgetting {
                 catch (StackOverflowError e){
                     writeFile.writeFile(dictPath+filelog,"1,"+log  +",0,0,0,1,0,0,0,0\n");
                     System.err.println("stackoverflow");
+                    Thread.currentThread().interrupt();
+
                     success = 0;
                 }catch (Exception e){
+
                     System.err.println(e+" runtimeerror");
                     writeFile.writeFile(dictPath+filelog,"1,"+log  +",0,0,0,2,0,0,0,0\n");
+                    Thread.currentThread().interrupt();
                     success = 0;
                 }catch (Error e){
                     System.err.println(e+" runtimeerror");
                     writeFile.writeFile(dictPath+filelog,"1,"+log  +",0,0,0,3,0,0,0,0\n");
+                    Thread.currentThread().interrupt();
+
                     success = 0;
                 }
                 return 1;
@@ -359,7 +451,7 @@ public class TestForgetting {
 
         if(success == 1 && isExtra == 0 ){
 
-            writeFile.writeFile(dictPath+filelog,"1,"+log+","+time*1.0+","+mem/1024/1024+",0,0,1,0,"+afterForgettingAxiomsSize+","+beforeForgettingAxiomsSize+"\n");
+            writeFile.writeFile(dictPath+filelog,"1,"+log+","+time*1.0+","+mem/1024/1024+",0,0,1,0,"+afterForgettingAxiomsSize+","+beforeForgettingAxiomsSize +"\n");
 
         }
         if(success == 1 && isExtra != 0){
@@ -368,8 +460,64 @@ public class TestForgetting {
         }
         future.cancel(true);
         exec.shutdownNow();
+                return resultOWLOntology;
+
+        */
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                AlchTBoxForgetter LetheForgetter = new AlchTBoxForgetter();
+                isExtra = 0;
+                success = 1;
+                hasFinished = 0;
+                System.gc();
+                Runtime r = Runtime.getRuntime();
+                long mem1 = r.freeMemory();
+                List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
+
+
+                long time1 = System.currentTimeMillis();
+                resultOWLOntology = LetheForgetter.forget(onto, symbols);
+                isExtra = isExtra(resultOWLOntology);
+                long time2 = System.currentTimeMillis();
+                long mem2 = r.freeMemory();
+                //elkEntailment.check(onto,resultOWLOntology,symbols);
+                if (success == 1 && isExtra == 0) {
+
+                    List<Formula> ui = new Converter().OntologyConverter(resultOWLOntology);
+                    System.out.println(resultOWLOntology.getLogicalAxiomCount());
+                    afterForgettingAxiomsSize = Sets.difference(new HashSet<>(ui), new HashSet<>(beginFormulalist)).size();
+                    beforeForgettingAxiomsSize = Sets.difference(new HashSet<>(beginFormulalist), new HashSet<>(ui)).size();
+                    System.out.println(afterForgettingAxiomsSize + " " + beforeForgettingAxiomsSize);
+
+                    time = (time2 - time1);
+                    mem = (mem1 - mem2);
+                }
+                hasFinished = 1;
+            }
+
+        });
+        thread.start();
+        thread.join(1000 * 250);
+        if(hasFinished == 0){
+            writeFile.writeFile(dictPath+filelog,"1,"+log+",0,0,1,0,0,0,0,0\n");
+            success = 0;
+        }else {
+            if (success == 1 && isExtra == 0) {
+
+                writeFile.writeFile(dictPath + filelog, "1," + log + "," + time * 1.0 + "," + mem / 1024 / 1024 + ",0,0,1,0," + afterForgettingAxiomsSize + "," + beforeForgettingAxiomsSize + "\n");
+
+            }
+            if (success == 1 && isExtra != 0) {
+                writeFile.writeFile(dictPath + filelog, "1," + log + ",0,0,0,0,0,1,0,0\n");
+
+            }
+        }
+        thread.stop();
+        hasFinished = 0;
 
         return resultOWLOntology;
+
     }
 
     public static OWLOntology LastForgetting(String dictPath,String filelog,String log, Set<OWLObjectProperty> roleSet, Set<OWLClass> conceptSet,OWLOntology onto) throws  Exception{
@@ -378,25 +526,38 @@ public class TestForgetting {
         Callable<Integer> task = new Callable<Integer>() {
             @Override
             public Integer call() throws Exception {
+                try {
+                    isExtra = 0;
+                    success = 1;
+                    System.gc();
+                    Runtime r = Runtime.getRuntime();
+                    long mem1 = r.freeMemory();
+                    List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
+                    // depthMeanMedian = getDepthMeanMedian(beginFormulalist,conceptSet);
 
-                isExtra = 0;
-                success = 1;
-                System.gc();
-                Runtime r = Runtime.getRuntime();
-                long mem1 = r.freeMemory();
-                List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
-                long time1 = System.currentTimeMillis();
-                List<Formula> ui = new Forgetter().ForgettingOldVersion(roleSet, conceptSet, onto);
-                resultOWLOntology = new BackConverter().toOWLOntology(ui);
-                long time2 = System.currentTimeMillis();
+                    long time1 = System.currentTimeMillis();
+                    List<Formula> ui = new Forgetter().ForgettingOldVersion(roleSet, conceptSet, onto);
+                    if (ui == null) {
+                        success = 2;
+                        return 1;
+                    }
+                    resultOWLOntology = new BackConverter().toOWLOntology(ui);
+                    long time2 = System.currentTimeMillis();
 
-                long mem2 = r.freeMemory();
-                if(success == 1 && isExtra == 0){
-                    afterForgettingAxiomsSize = Sets.difference(new HashSet<>(ui),new HashSet<>(beginFormulalist)).size();
-                    beforeForgettingAxiomsSize = Sets.difference(new HashSet<>(beginFormulalist),new HashSet<>(ui)).size();
-                    time = (time2 - time1);
-                    mem = (mem1-mem2);
-                    //elkEntailment.check(onto,ui,ct.getRolesfromObjectProperties(roleSet),ct.getConceptsfromClasses(conceptSet));
+                    long mem2 = r.freeMemory();
+                    if (success == 1 && isExtra == 0) {
+                        afterForgettingAxiomsSize = Sets.difference(new HashSet<>(ui), new HashSet<>(beginFormulalist)).size();
+                        beforeForgettingAxiomsSize = Sets.difference(new HashSet<>(beginFormulalist), new HashSet<>(ui)).size();
+                        time = (time2 - time1);
+                        mem = (mem1 - mem2);
+                        //elkEntailment.check(onto,ui,ct.getRolesfromObjectProperties(roleSet),ct.getConceptsfromClasses(conceptSet));
+
+                    }
+                }catch (InterruptedException e){
+                    Thread.currentThread().interrupt();
+
+                    System.out.println("Thread was interrupted, Failed to complete operation");
+
 
                 }
 
@@ -421,6 +582,10 @@ public class TestForgetting {
         if(success == 1 && isExtra != 0){
             writeFile.writeFile(dictPath+filelog,"2,"+log+",0,0,0,0,0,1,0,0,0 "+"\n");
         }
+        if(success == 2){//reasoner has something worong;
+            writeFile.writeFile(dictPath+filelog,"2,"+log+",0,0,0,0,2,0,0,0,0 "+"\n");
+
+        }
         future.cancel(true);
         exec.shutdownNow();
 
@@ -428,31 +593,46 @@ public class TestForgetting {
     }
 
     public static OWLOntology MyForgetting(String dictPath,String filelog,String log, Set<OWLObjectProperty> roleSet, Set<OWLClass> conceptSet,OWLOntology onto) throws  Exception{
+        /*
         final ExecutorService exec = Executors.newSingleThreadExecutor();
-        saveMetrics metrics = new saveMetrics();
-        Converter ct = new Converter();
+
         Callable<Integer> task = new Callable<Integer>() {
             @Override
             public Integer call() throws Exception {
+                try {
+                    isExtra = 0;
+                    success = 1;
+                    System.gc();
+                    Runtime r = Runtime.getRuntime();
+                    long mem1 = r.freeMemory();
+                    List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
+                    depthMeanMedian = getDepthMeanMedian(beginFormulalist, conceptSet);
 
-                isExtra = 0;
-                success = 1;
-                System.gc();
-                Runtime r = Runtime.getRuntime();
-                long mem1 = r.freeMemory();
-                List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
-                long time1 = System.currentTimeMillis();
+                    long time1 = System.currentTimeMillis();
 
-                List<Formula> ui = new Forgetter().Forgetting(roleSet, conceptSet, onto,metrics);
-                resultOWLOntology = new BackConverter().toOWLOntology(ui);
-                long time2 = System.currentTimeMillis();
-                long mem2 = r.freeMemory();
-                if(success == 1 && isExtra == 0){
-                    afterForgettingAxiomsSize = Sets.difference(new HashSet<>(ui),new HashSet<>(beginFormulalist)).size();
-                    beforeForgettingAxiomsSize = Sets.difference(new HashSet<>(beginFormulalist),new HashSet<>(ui)).size();
-                    time = (time2 - time1);
-                    mem = (mem1-mem2);
-                  //  elkEntailment.check(onto,ui,ct.getRolesfromObjectProperties(roleSet),ct.getConceptsfromClasses(conceptSet));
+                    List<Formula> ui = new Forgetter().Forgetting(roleSet, conceptSet, onto, metrics);
+                    if (ui == null) {
+                        success = 2;
+                        return 1;
+                    }
+                    resultOWLOntology = new BackConverter().toOWLOntology(ui);
+                    long time2 = System.currentTimeMillis();
+                    long mem2 = r.freeMemory();
+                    if (success == 1 && isExtra == 0) {
+                        afterForgettingAxiomsSize = Sets.difference(new HashSet<>(ui), new HashSet<>(beginFormulalist)).size();
+                        beforeForgettingAxiomsSize = Sets.difference(new HashSet<>(beginFormulalist), new HashSet<>(ui)).size();
+                        time = (time2 - time1);
+                        mem = (mem1 - mem2);
+                        // elkEntailment.check(onto,ui,ct.getRolesfromObjectProperties(roleSet),ct.getConceptsfromClasses(conceptSet));
+
+                    }
+                }catch (InterruptedException e){
+
+                        Thread.currentThread().interrupt();
+
+                        System.out.println("Thread was interrupted, Failed to complete operation");
+
+
 
                 }
                 return 1;
@@ -460,27 +640,106 @@ public class TestForgetting {
         };
         Future<Integer> future = exec.submit(task);
         try{
-            int t = future.get(1000 * 160,TimeUnit.MILLISECONDS);
+            future.get(1000 * 160,TimeUnit.MILLISECONDS);
         }
         catch (TimeoutException e){
-            writeFile.writeFile(dictPath+filelog,"0,"+log+",0,0,1,0,0,0,0,0,0 "+metrics.returnMetrics()+"\n");
             success = 0;
+            writeFile.writeFile(dictPath+filelog,"0,"+log+",0,0,1,0,0,0,0,0,0 "+metrics.returnMetrics()+"\n");
         }
 
         if(success == 1 && isExtra == 0 ){
             metrics.success = 1;
             metrics.isExtra = 0;
-            writeFile.writeFile(dictPath+filelog,"0,"+log+","+time*1.0+","+mem/1024/1024+",0,0,1,0,"+afterForgettingAxiomsSize+","+beforeForgettingAxiomsSize+","+AtomicConcept.getDefiner_index()+" "+metrics.returnMetrics()+"\n");
+            writeFile.writeFile(dictPath+filelog,"0,"+log+","+time*1.0+","+mem/1024/1024+",0,0,1,0,"+afterForgettingAxiomsSize+","+beforeForgettingAxiomsSize+","
+                    +AtomicConcept.getDefiner_index()+","+metrics.returnMetrics()+","+depthMeanMedian.get(0)+","+depthMeanMedian.get(1)+","+depthMeanMedian.get(2)+"\n");
 
         }
         if(success == 1 && isExtra != 0){
             metrics.isExtra = 1;
             metrics.success = 0;
-            writeFile.writeFile(dictPath+filelog,"0,"+log+",0,0,0,0,0,1,0,0,0 "+metrics.returnMetrics()+"\n");
+            writeFile.writeFile(dictPath+filelog,"0,"+log+",0,0,0,0,0,1,0,0,0,"+metrics.returnMetrics()+"\n");
 
         }
+        if(success == 2){//reasoner has something worong;
+            writeFile.writeFile(dictPath+filelog,"0,"+log+",0,0,0,0,2,0,0,0,0,"+metrics.returnMetrics()+"\n");
+
+        }
+
         future.cancel(true);
         exec.shutdownNow();
+
+        return resultOWLOntology;
+
+         */
+        saveMetrics metrics = new saveMetrics();
+        Converter ct = new Converter();
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                isExtra = 0;
+                success = 1;
+                hasFinished = 0;
+                System.gc();
+                Runtime r = Runtime.getRuntime();
+                long mem1 = r.freeMemory();
+                List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
+                depthMeanMedian = getDepthMeanMedian(beginFormulalist, conceptSet);
+
+                long time1 = System.currentTimeMillis();
+                List<Formula> ui = null;
+                try{
+                    ui = new Forgetter().Forgetting(roleSet, conceptSet, onto, metrics);
+                }catch (Exception e){
+
+                }
+                if (ui == null) {
+                    success = 2;
+                }
+                try {
+                    resultOWLOntology = new BackConverter().toOWLOntology(ui);
+                } catch (Exception e) {
+
+                }
+
+                long time2 = System.currentTimeMillis();
+                long mem2 = r.freeMemory();
+                if (success == 1 && isExtra == 0) {
+                    afterForgettingAxiomsSize = Sets.difference(new HashSet<>(ui), new HashSet<>(beginFormulalist)).size();
+                    beforeForgettingAxiomsSize = Sets.difference(new HashSet<>(beginFormulalist), new HashSet<>(ui)).size();
+                    time = (time2 - time1);
+                    mem = (mem1 - mem2);
+                    // elkEntailment.check(onto,ui,ct.getRolesfromObjectProperties(roleSet),ct.getConceptsfromClasses(conceptSet));
+
+                }
+                hasFinished = 1;
+            }
+        });
+        thread.start();
+        thread.join(1000 * 180);
+        if(hasFinished == 0){
+            success = 0;
+            writeFile.writeFile(dictPath+filelog,"0,"+log+",0,0,1,0,0,0,0,0,0 "+metrics.returnMetrics()+"\n");
+
+        }
+        if(success == 1 && isExtra == 0 ){
+            metrics.success = 1;
+            metrics.isExtra = 0;
+            writeFile.writeFile(dictPath+filelog,"0,"+log+","+time*1.0+","+mem/1024/1024+",0,0,1,0,"+afterForgettingAxiomsSize+","+beforeForgettingAxiomsSize+","
+                    +AtomicConcept.getDefiner_index()+","+metrics.returnMetrics()+","+depthMeanMedian.get(0)+","+depthMeanMedian.get(1)+","+depthMeanMedian.get(2)+"\n");
+
+        }
+        if(success == 1 && isExtra != 0){
+            metrics.isExtra = 1;
+            metrics.success = 0;
+            writeFile.writeFile(dictPath+filelog,"0,"+log+",0,0,0,0,0,1,0,0,0,"+metrics.returnMetrics()+"\n");
+
+        }
+        if(success == 2){//reasoner has something worong;
+            writeFile.writeFile(dictPath+filelog,"0,"+log+",0,0,0,0,2,0,0,0,0,"+metrics.returnMetrics()+"\n");
+
+        }
+        thread.stop();
+        hasFinished = 0;
 
         return resultOWLOntology;
     }
@@ -491,7 +750,7 @@ public class TestForgetting {
         OWLOntology witness = manager.createOntology();
         OWLReasoner reasoner = null;
         try {
-             reasoner = new ReasonerFactory().createReasoner(onto1);
+              reasoner = new Reasoner.ReasonerFactory().createReasoner(onto);
 
 
         }catch (Exception e){
@@ -655,7 +914,7 @@ public class TestForgetting {
         Set<OWLClass> weakenConcepts= new HashSet<>();//被削弱的class
         Set<OWLClass> weakenOnGeneralNotChangedOnCommonConcept = new HashSet<>();//在共有符号上定义不变，在全部符号上定义削弱的class
         Set<OWLClass> otherConcepts = new HashSet<>();//其他改变的本体
-        OWLReasoner  reasoner = new ReasonerFactory().createReasoner(o1);
+        OWLReasoner  reasoner = new Reasoner.ReasonerFactory().createReasoner(o1);
         Map<OWLClass,Set<OWLLogicalAxiom>> mapO1 = new HashMap<>();
         Map<OWLClass,Set<OWLLogicalAxiom>> mapV = new HashMap<>();
         for(OWLLogicalAxiom axiom : o1.getLogicalAxioms()){
@@ -807,25 +1066,34 @@ public class TestForgetting {
     }
 
 
-    public static void testUI(String corpus,double rate)throws Exception{
-        String dictPath = "/Users/liuzhao/Desktop/experiments/Test_data_for_forgetting/dataSet/Oxford-ISG/"+corpus+"/";
+    public static void testUI(String corpus, String part,double rate)throws Exception{
+        String dictPath = "/Users/liuzhao/Desktop/experiments/Test_data_for_forgetting/dataSet/"+corpus+"/"+part+"/";
         //String dictPath = "/Users/liuzhao/nju/NCBO/data/";
-        String filelog = "log"+rate+corpus+"_9.6test.txt";
+        String filelog = "log"+rate+part+"LICSDepth.txt";
         String title = "isLethe,fileName,LogicalAxiomsSize,RolesSize,ConceptsSize,GCISize,GCIRolesSize,GCIConceptSize,rate,time,memory,timeOut,MemoryOut," +
-                "isSuccess,isExtra,afterForgettingAxiomsSize,beforeForgettingAxiomsSize,optimizenum1,optimizenum2,optimizenum3,optimizenum4,optimizetim3\n";
+                "isSuccess,isExtra,afterForgettingAxiomsSize,beforeForgettingAxiomsSize,definer,optimizenum1,optimizenum2,optimizenum3,optimizenum4,optimizetim3,depthMean,depthMedian,depthMax\n";
        //writeFile.writeFile(dictPath+filelog,title);//写入title
         Converter ct = new Converter();
         BackConverter bc = new BackConverter();
-        int circle = 2;//重复10次实验
+        int circle = 3;//重复10次实验
         int isLethe = 0;
+        //删除上一次没做完的
+        ArrayList<String> temp = readFile.readFile(dictPath+filelog);//
+        while(temp.size() !=0 && temp.get(temp.size()-1).charAt(0) != '1'){
+            File file = new File(dictPath+filelog);
+            if(file.exists()) file.delete();
+            for(int i = 0; i < temp.size()-1 ; i++)
+                writeFile.writeFile(dictPath+filelog,temp.get(i)+"\n");
+            temp = readFile.readFile(dictPath+filelog);
+        }
+
         ArrayList<String> allFile = getFileName(dictPath);
-        //ArrayList<String> allFile = readFile.readFile(dictPath+corpus+".txt");
         for(String path : allFile){
             if(!path.contains(".owl")) continue;
             int hasReadMine = 0;
             ArrayList<String> hasRecord = readFile.readFile(dictPath+filelog);
-            for(String temp : hasRecord) {
-                if (temp.contains(path) && (temp.charAt(0)- (int)('1')) == 0) {
+            for(String str : hasRecord) {
+                if (str.contains(path) && (str.charAt(0)- (int)('1')) == 0) {
                     hasReadMine++;
                 }
 
@@ -868,12 +1136,13 @@ public class TestForgetting {
                 System.out.println("forgetting concepts :"+(int) (rate * conceptsize));
                 System.out.println(hasReadMine);
                 List<OWLClass> forgettingConcepts = getSubStringByRadom2(conceptList, (int) (rate * conceptsize));
-                List<OWLObjectProperty> forgettingRoles = getSubStringByRadom1(roleList, (int) (rate * rolesize));
+                //List<OWLObjectProperty> forgettingRoles = getSubStringByRadom1(roleList, (int) (rate * rolesize));
+                List<OWLObjectProperty> forgettingRoles = new ArrayList<>();
                 Set<OWLEntity> forgettingSignatures = Sets.union(new HashSet<>(forgettingConcepts), new HashSet<>(forgettingRoles));
                 System.out.println("begin mine");
                 OWLOntology myForgettingUI = MyForgetting(dictPath,filelog,log,new HashSet<>(forgettingRoles),new HashSet<>(forgettingConcepts),onto);
-                System.out.println("begin last");
-                OWLOntology lastForgettingUI = LastForgetting(dictPath,filelog,log,new HashSet<>(forgettingRoles),new HashSet<>(forgettingConcepts),onto);
+                //System.out.println("begin last");
+               // OWLOntology lastForgettingUI = LastForgetting(dictPath,filelog,log,new HashSet<>(forgettingRoles),new HashSet<>(forgettingConcepts),onto);
                 System.out.println("begin lethe");
                 OWLOntology letheForgettingUI = LetheForgetting(dictPath,filelog,log,forgettingSignatures,onto);
                 /*
@@ -928,7 +1197,7 @@ public class TestForgetting {
         OWLOntology witness_explicit_onto = manager.createOntology();
         OWLOntology witness_implicit_onto = manager.createOntology();
         //OWLReasoner hermit =  new ElkReasonerFactory().createReasoner(onto1);
-        OWLReasoner hermit=new ReasonerFactory().createReasoner(onto1);
+        OWLReasoner  hermit = new Reasoner.ReasonerFactory().createReasoner(onto1);
         int numexplicit = 0;
         int numimplicit = 0;
         int step = 0;
@@ -1567,40 +1836,756 @@ public class TestForgetting {
     }
 
      */
+    @Test
+    public void DepthEachFile()throws Exception{
+        double rate = 0.3;
+        String corpus = "PARTI";
+        String filelog = "LICSEverydepthis.txt";
+        String dictPath = "/Users/liuzhao/Desktop/experiments/Test_data_for_forgetting/dataSet/Oxford-ISG/"+corpus+"/";
+        Converter ct = new Converter();
+        BackConverter bc = new BackConverter();
+        Inferencer inf = new Inferencer();
+        ArrayList<String> allFile = getFileName(dictPath);
+
+        for(String path : allFile) {
+            Map<OWLClass, Set<OWLLogicalAxiom>> map = new HashMap<>();
+            if (!(path.contains(".owl") || path.contains(".xml"))) continue;
+            System.out.println(path);
+            OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
+            OWLOntology onto = manager1.loadOntologyFromOntologyDocument(new File(path));
+            List<Formula> beginFormulalist = new Converter().OntologyConverter(onto);
+            List<OWLClass> forgettingConcepts = getSubStringByRadom2(new ArrayList<>(onto.getClassesInSignature()), (int) (rate * onto.getClassesInSignature().size()));
+            //List<OWLObjectProperty> forgettingRoles = getSubStringByRadom1(roleList, (int) (rate * rolesize));
+            List<OWLObjectProperty> forgettingRoles = new ArrayList<>();
+            List<Double> depthMeanMedian = getDepthMeanMedian(beginFormulalist, new HashSet<>(forgettingConcepts));
+            System.out.println(depthMeanMedian);
+            String log = path +","+depthMeanMedian.get(0)+","+depthMeanMedian.get(1)+","+depthMeanMedian.get(2)+"\n";
+            writeFile.writeFile(dictPath+filelog,log);
+        }
+    }
+    @Test
+    public void testLICS1()throws Exception{ //type1 存在equiv左边的 type2 对于出现在左边的 只出现在A in D 这样的  type3 base concept
+        // type 4 others
+            String corpus = "PARTI";
+            double rate = 0.5;
+            String filelog = "LICSBeforeForgetting.txt";
+            String dictPath = "/Users/liuzhao/Desktop/experiments/Test_data_for_forgetting/dataSet/BioPortal/"+corpus+"/";
+            Converter ct = new Converter();
+            BackConverter bc = new BackConverter();
+            Inferencer inf = new Inferencer();
+            ArrayList<String> allFile = getFileName(dictPath);
+
+            for(String path : allFile){
+                Map<OWLClass,Set<OWLLogicalAxiom>> map = new HashMap<>();
+                if(!(path.contains(".owl") || path.contains(".xml"))) continue;
+                System.out.println(path);
+                OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
+                OWLOntology onto = manager1.loadOntologyFromOntologyDocument(new File(path));
+                int alltype = onto.getClassesInSignature().size();
+                int type1 = 0, type2 = 0, type3 = 0, type4 = 0;
+                Set<OWLClass> type1Type = new HashSet<>();// defined concept equiv
+                Set<OWLClass> type2Type = new HashSet<>();//defined concept inclusion
+                Set<OWLClass> right = new HashSet<>();
+                Set<OWLClass> left = new HashSet<>();
+                Set<OWLClass> type4Type = new HashSet<>();
+                Set<OWLClass> leftnowSingle = new HashSet<>();
+                for(OWLLogicalAxiom axiom : onto.getLogicalAxioms()){
+                  //  if(axiom.toString().contains("http://purl.org/obo/owl/GO#GO_0022626")) System.out.println(axiom+"^^^");
+                    if(axiom instanceof OWLEquivalentClassesAxiom){
+                        Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms =
+                                ((OWLEquivalentClassesAxiom)axiom).asOWLSubClassOfAxioms();
+                        for(OWLSubClassOfAxiom axiom1 : owlSubClassOfAxioms){
+                            if(axiom1.getSubClass() instanceof OWLClass)type1Type.add((OWLClass)axiom1.getSubClass());
+                            else if(axiom1.getSuperClass() instanceof OWLClass) type1Type.add((OWLClass) axiom1.getSuperClass());
+                            left.addAll(axiom1.getClassesInSignature());//todo
+                           // right.addAll(axiom1.getSuperClass().getClassesInSignature());
+                            break;
+                        }
+                        leftnowSingle.addAll(axiom.getClassesInSignature());
+                    }else if(axiom instanceof OWLSubClassOfAxiom){
+                        OWLSubClassOfAxiom now  = (OWLSubClassOfAxiom) axiom;
+                        if(now.getSubClass() instanceof  OWLClass) type2Type.add((OWLClass) now.getSubClass());
+                        else{
+                            leftnowSingle.addAll(now.getSubClass().getClassesInSignature());
+                        }
+                        left.addAll(now.getSubClass().getClassesInSignature());
+                        right.addAll(now.getSuperClass().getClassesInSignature());
+                    }
+
+                    //记录forgetting concept对应的axioms
+                    Set<OWLClass> temp = axiom.getClassesInSignature();
+                    for(OWLClass c : temp){
+                        if(map.getOrDefault(c,null) == null){
+                            map.put(c,new HashSet<>());
+                        }
+                        map.get(c).add(axiom);
+                    }
+                }
+                type1 = type1Type.size();
+                type2Type.removeAll(type1Type);
+                type2Type.removeAll(leftnowSingle);
+                type2 = type2Type.size();
+                right.removeAll(left);
+                right.removeAll(type1Type);
+                right.removeAll(type2Type);
+                type3 = right.size();
+                type4 = alltype - type1 - type2 - type3;
+                String nowLog = "1 "+path +" " +alltype+" "+" "+type1 +" "+ type2 +" "+ type3 +" "+ type4;
+                if(type4 < 0 ) throw new Exception();
+////////////////////////////////////////////
+                List<OWLClass> forgettingConcepts = getSubStringByRadom2(new ArrayList<>(onto.getClassesInSignature()), (int) (rate * alltype));
+                Set<OWLClass> random_forgettingConcepts = new HashSet<>(forgettingConcepts);
+                Set<OWLClass> random_type1Set = Sets.intersection(random_forgettingConcepts,type1Type);
+                Set<OWLClass> random_type2Set = Sets.intersection(random_forgettingConcepts,type2Type);
+                Set<OWLClass> random_type3Set = Sets.intersection(random_forgettingConcepts,right);
+                Set<OWLClass> random_type4Set = new HashSet<>(random_forgettingConcepts);
+                random_type4Set.removeAll(random_type1Set);random_type4Set.removeAll(random_type2Set);
+                random_type4Set.removeAll(random_type3Set);
+
+                int random_type1 = random_type1Set.size();
+                int random_type2 = random_type2Set.size();
+                int random_type3 = random_type3Set.size();
+                int random_type4 = random_forgettingConcepts.size() - random_type1-random_type2-random_type3;
+                if(random_type4 != random_type4Set.size())  throw new Exception();
+                if(random_type4 < 0) throw  new Exception();
+                String nowLog2 ="2 "+ path +" " + random_forgettingConcepts.size()+" " + random_type1 +" "+ random_type2 +
+                        " "+random_type3+" "+random_type4;
+
+                Set<OWLLogicalAxiom> deletedAxioms = new HashSet<>();
+                int random_after_type1 = random_type1,random_after_type2 =random_type2,random_after_type3 = random_type3,random_after_type4 = 0;
+                Set<OWLLogicalAxiom> axioms = onto.getLogicalAxioms();
+///////////////////////////////
+
+
+                //先遗忘base concept
+                for(OWLClass owlclass : random_type3Set){
+                    Set<OWLLogicalAxiom> axiomSet = map.get(owlclass);
+                    axiomSet.removeAll(deletedAxioms);
+                    deletedAxioms.addAll(axiomSet);
+                    List<Formula> formulas = ct.AxiomConverter_rightAnd(axiomSet);
+                    List<Formula> ans = new ArrayList<>();
+                    for(Formula formula : formulas){
+
+                        if(!formula.getSubFormulas().get(1).equals(ct.getConceptfromClass(owlclass))){
+                            Formula temp = inf.AckermannReplace(ct.getConceptfromClass(owlclass), formula, TopConcept.getInstance());
+                            if(!TautologyChecker.isTautology(temp)) ans.add(temp); //todo 可能出现 a = b and exist r. C   把C换成了T,但应该是a in B and exist r.T
+
+
+                        }
+                    }
+                    Set<OWLAxiom> replaced_axioms = bc.toOWLAxioms(ans);
+                    for (OWLAxiom axiom : replaced_axioms) {
+                        Set<OWLClass> classes = axiom.getClassesInSignature();
+                        for (OWLClass c1 : classes) {
+                            if (map.getOrDefault(c1, null) == null) {
+                                map.put(c1, new HashSet<>());
+                            }
+                            map.get(c1).add((OWLLogicalAxiom) axiom);
+                        }
+                        axioms.add((OWLLogicalAxiom)axiom);
+
+                    }
+
+                }
+                // 再遗忘type1
+                for(OWLClass owlClass : random_type1Set) {
+                    Set<OWLLogicalAxiom> axiomSet = map.get(owlClass);
+                    axiomSet.removeAll(deletedAxioms);
+                    deletedAxioms.addAll(axiomSet);
+                    OWLLogicalAxiom axiomDefinition = null;
+                    OWLClassExpression definition_of_defined_concept = null;
+
+                    for (OWLLogicalAxiom tempaxiom : axiomSet) {
+                        if (tempaxiom instanceof OWLEquivalentClassesAxiom) {
+                            Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms =
+                                    ((OWLEquivalentClassesAxiom) tempaxiom).asOWLSubClassOfAxioms();
+                            for (OWLSubClassOfAxiom axiom1 : owlSubClassOfAxioms) {
+                                if (axiom1.getSubClass() instanceof OWLClass) {
+                                    if (owlClass.equals( axiom1.getSubClass())) {
+                                        definition_of_defined_concept = axiom1.getSuperClass();
+                                        axiomDefinition = axiom1;
+                                        break;
+                                    }else if (owlClass.equals(axiom1.getSuperClass())) {
+                                        definition_of_defined_concept = axiom1.getSubClass();
+                                        axiomDefinition = axiom1;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (axiomDefinition == null){ // todo
+                        random_after_type1--;
+                        continue;
+                    }
+                    axiomSet.remove(axiomDefinition);
+                    List<Formula> formulas = ct.AxiomConverter_rightAnd(axiomSet);
+
+
+                    Formula definition = ct.ClassExpressionConverter(definition_of_defined_concept);
+                    List<Formula> ans = new ArrayList<>();
+                    if (definition != null) {
+                        for (Formula f : formulas) {
+                            Formula temp = inf.AckermannReplace(ct.getConceptfromClass(owlClass), f, definition);
+                            if(!TautologyChecker.isTautology(temp)) ans.add(temp);
+                        }
+                    }
+                    Set<OWLAxiom> replaced_axioms = bc.toOWLAxioms(ans);
+                    for (OWLAxiom axiom : replaced_axioms) {
+                        Set<OWLClass> classes = axiom.getClassesInSignature();
+                        for (OWLClass c1 : classes) {
+                            if (map.getOrDefault(c1, null) == null) {
+                                map.put(c1, new HashSet<>());
+                            }
+                            map.get(c1).add((OWLLogicalAxiom) axiom);
+                        }
+                        axioms.add((OWLLogicalAxiom) axiom);
+
+                    }
+                }
+                //再计算type2，这里偷懒了没有让他去删除
+                int addTotype4 = 0;
+                for(OWLClass owlClass : random_type2Set){
+                    Set<OWLLogicalAxiom> axiomSet = map.get(owlClass);
+                    axiomSet.removeAll(deletedAxioms);
+                    if(axiomSet.size() == 0){
+                        random_after_type2--;
+                    }else {
+                        for (OWLLogicalAxiom axiom : axiomSet) {
+                            if (axiom instanceof OWLSubClassOfAxiom) {
+                                if (((OWLSubClassOfAxiom) axiom).getSubClass().toString().contains(owlClass.toString())) {
+                                    if (!(((OWLSubClassOfAxiom) axiom).getSubClass() instanceof OWLClass)) {
+                                        random_after_type2--;
+                                        addTotype4++;
+                                       // System.out.println(owlClass);
+                                       // System.out.println(axiom);
+                                        break;
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                }
+                //再计算random_after_type4
+                OWLOntologyManager manager2 = OWLManager.createOWLOntologyManager();
+                OWLOntology ontoAfter = manager2.createOntology();
+                for(OWLAxiom axiom : axioms)
+                    manager2.applyChange(new AddAxiom(ontoAfter, axiom));
+                Set<OWLClass> classesAfter = ontoAfter.getClassesInSignature();
+                classesAfter.removeAll(random_type1Set);
+                classesAfter.removeAll(random_type2Set);
+                classesAfter.removeAll(random_type3Set);
+                random_after_type4 = Sets.intersection(random_type4Set,classesAfter).size()+addTotype4;
+                int all_random_after_type = random_after_type1+random_after_type2+random_after_type3+random_after_type4;
+                String nowLog3 ="3 "+ path +" " + all_random_after_type+" "+
+                        random_after_type1+" " + random_after_type2 +" "+ random_after_type3 + " "+random_after_type4;
+                System.out.println(nowLog);
+                System.out.println(nowLog2);
+                System.out.println(nowLog3);
+
+                writeFile.writeFile(dictPath + filelog, nowLog + "\n");
+                writeFile.writeFile(dictPath + filelog, nowLog2 + "\n");
+                writeFile.writeFile(dictPath + filelog, nowLog3 + "\n");
+
+                System.out.println();
+
+
+
+
+
+            }
+
+
+    }
+
+
+
+    @Test
+    public void testLICS2()throws Exception{ //type1 存在equiv左边的 type2 对于出现在左边的 只出现在A in D 这样的  type3 base concept
+        // type 4 others
+        String[][] dirs = new String[][]{{"1601","1607"},{"1601","1701"},{"1601","1801"},{"1607","1701"},{"1701","1707"},
+                {"1701","1801"},{"1707","1801"},{"1901","1907"},{"1607","1601"},{"1701","1601"},{"1701","1607"},{"1707","1701"},
+                {"1801","1701"},{"1801","1707"},{"1807","1801"},{"1901","1801"},{"1901","1807"},{"1907","1901"},{"2007","2003"}
+        };
+        String filelog = "LICSBeforeForgettingSNOMEDCT.txt";
+        String dictPath = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/";
+        Converter ct = new Converter();
+        BackConverter bc = new BackConverter();
+        Inferencer inf = new Inferencer();
+
+        for(String[]dir : dirs){
+            String pathO1 = dictPath +"ontology_20"+dir[0]+".owl";
+            String pathO2 = dictPath + "ontology_20"+dir[1] +".owl";
+            System.out.println(pathO1);
+            System.out.println(pathO2);
+            OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
+            OWLOntology onto1 = manager1.loadOntologyFromOntologyDocument(new File(pathO1));
+            System.out.println("o1 loaded");
+            OWLOntologyManager manager2 = OWLManager.createOWLOntologyManager();
+            OWLOntology onto2 = manager2.loadOntologyFromOntologyDocument(new File(pathO2));
+            System.out.println("o2 loaded");
+            int alltype = onto2.getClassesInSignature().size();
+            int type1 = 0, type2 = 0, type3 = 0, type4 = 0;
+            Map<OWLClass,Set<OWLLogicalAxiom>> map = new HashMap<>();
+
+            Set<OWLClass> type1Type = new HashSet<>();// defined concept equiv
+            Set<OWLClass> type2Type = new HashSet<>();//defined concept inclusion
+            Set<OWLClass> right = new HashSet<>();
+            Set<OWLClass> left = new HashSet<>();
+            Set<OWLClass> type4Type = new HashSet<>();
+            Set<OWLClass> leftnowSingle = new HashSet<>();
+            for(OWLLogicalAxiom axiom : onto2.getLogicalAxioms()){
+                if(axiom instanceof OWLEquivalentClassesAxiom){
+                    Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms =
+                            ((OWLEquivalentClassesAxiom)axiom).asOWLSubClassOfAxioms();
+                    for(OWLSubClassOfAxiom axiom1 : owlSubClassOfAxioms){
+                        if(axiom1.getSubClass() instanceof OWLClass)type1Type.add((OWLClass)axiom1.getSubClass());
+                        else if(axiom1.getSuperClass() instanceof OWLClass) type1Type.add((OWLClass) axiom1.getSuperClass());
+                        left.addAll(axiom1.getClassesInSignature());//todo
+                        //right.addAll(axiom1.getSuperClass().getClassesInSignature());
+                        break;
+                    }
+                    leftnowSingle.addAll(axiom.getClassesInSignature());
+                }else if(axiom instanceof OWLSubClassOfAxiom){
+                    OWLSubClassOfAxiom axiom1 = (OWLSubClassOfAxiom) axiom;
+                    left.addAll(axiom1.getSubClass().getClassesInSignature());
+                    right.addAll(axiom1.getSuperClass().getClassesInSignature());
+                    OWLSubClassOfAxiom now  = (OWLSubClassOfAxiom) axiom;
+                    if(now.getSubClass() instanceof  OWLClass) type2Type.add((OWLClass) now.getSubClass());
+                    else{
+                        leftnowSingle.addAll(now.getSubClass().getClassesInSignature());
+                    }
+                }
+
+                //记录forgetting concept对应的axioms
+                Set<OWLClass> temp = axiom.getClassesInSignature();
+                for(OWLClass c : temp){
+                    if(map.getOrDefault(c,null) == null){
+                        map.put(c,new HashSet<>());
+                    }
+                    map.get(c).add(axiom);
+                }
+            }
+            type1 = type1Type.size();
+            type2Type.removeAll(type1Type);
+            type2Type.removeAll(leftnowSingle);
+            type2 = type2Type.size();
+            right.removeAll(left);
+            right.removeAll(type1Type);
+            right.removeAll(type2Type);
+            type3 = right.size();
+            type4 = alltype - type1 - type2 - type3;
+            String nowLog = "1 "+pathO1+","+pathO2 +" " +alltype+" "+" "+type1 +" "+ type2 +" "+ type3 +" "+ type4;
+            if(type4 < 0 ) throw new Exception();
+////////////////////////////////////////////
+          //  List<OWLClass> forgettingConcepts = getSubStringByRadom2(new ArrayList<>(onto.getClassesInSignature()), (int) (rate * alltype));
+          //  List<OWLClass> forgettingConcepts = new ArrayList<>(Sets.difference(onto2.getClassesInSignature(),onto1.getClassesInSignature()));
+            Set<OWLClass> random_forgettingConcepts = new HashSet<>(onto2.getClassesInSignature());
+            random_forgettingConcepts.removeAll(onto1.getClassesInSignature());
+            Set<OWLClass> random_type1Set = Sets.intersection(random_forgettingConcepts,type1Type);
+            Set<OWLClass> random_type2Set = Sets.intersection(random_forgettingConcepts,type2Type);
+            Set<OWLClass> random_type3Set = Sets.intersection(random_forgettingConcepts,right);
+            Set<OWLClass> random_type4Set = new HashSet<>(random_forgettingConcepts);
+            random_type4Set.removeAll(random_type1Set);random_type4Set.removeAll(random_type2Set);
+            random_type4Set.removeAll(random_type3Set);
+
+            int random_type1 = random_type1Set.size();
+            int random_type2 = random_type2Set.size();
+            int random_type3 = random_type3Set.size();
+            int random_type4 = random_forgettingConcepts.size() - random_type1-random_type2-random_type3;
+            if(random_type4 != random_type4Set.size())  throw new Exception();
+            if(random_type4 < 0) throw  new Exception();
+            String nowLog2 ="2 "+ pathO1+","+pathO2 +" " + random_forgettingConcepts.size()+" " + random_type1 +" "+ random_type2 +
+                    " "+random_type3+" "+random_type4;
+
+            Set<OWLLogicalAxiom> deletedAxioms = new HashSet<>();
+            int random_after_type1 = random_type1,random_after_type2 =random_type2,random_after_type3 = random_type3,random_after_type4 = 0;
+            Set<OWLLogicalAxiom> axioms = onto2.getLogicalAxioms();
+///////////////////////////////
+
+
+            //先遗忘base concept
+            for(OWLClass owlclass : random_type3Set){
+                Set<OWLLogicalAxiom> axiomSet = map.get(owlclass);
+                axiomSet.removeAll(deletedAxioms);
+                deletedAxioms.addAll(axiomSet);
+                List<Formula> formulas = ct.AxiomConverter_rightAnd(axiomSet);
+                List<Formula> ans = new ArrayList<>();
+                for(Formula formula : formulas){
+
+                    if(!formula.getSubFormulas().get(1).equals(ct.getConceptfromClass(owlclass))){
+                        Formula temp = inf.AckermannReplace(ct.getConceptfromClass(owlclass), formula, TopConcept.getInstance());
+                        if(!TautologyChecker.isTautology(temp)) ans.add(temp); //todo 可能出现 a = b and exist r. C   把C换成了T,但应该是a in B and exist r.T
+
+
+                    }
+                }
+                Set<OWLAxiom> replaced_axioms = bc.toOWLAxioms(ans);
+                for (OWLAxiom axiom : replaced_axioms) {
+                    Set<OWLClass> classes = axiom.getClassesInSignature();
+                    for (OWLClass c1 : classes) {
+                        if (map.getOrDefault(c1, null) == null) {
+                            map.put(c1, new HashSet<>());
+                        }
+                        map.get(c1).add((OWLLogicalAxiom) axiom);
+                    }
+                    axioms.add((OWLLogicalAxiom)axiom);
+
+                }
+
+            }
+            // 再遗忘type1
+            for(OWLClass owlClass : random_type1Set) {
+                Set<OWLLogicalAxiom> axiomSet = map.get(owlClass);
+                axiomSet.removeAll(deletedAxioms);
+                deletedAxioms.addAll(axiomSet);
+                OWLLogicalAxiom axiomDefinition = null;
+                OWLClassExpression definition_of_defined_concept = null;
+
+                for (OWLLogicalAxiom tempaxiom : axiomSet) {
+                    if (tempaxiom instanceof OWLEquivalentClassesAxiom) {
+                        Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms =
+                                ((OWLEquivalentClassesAxiom) tempaxiom).asOWLSubClassOfAxioms();
+                        for (OWLSubClassOfAxiom axiom1 : owlSubClassOfAxioms) {
+                            if (axiom1.getSubClass() instanceof OWLClass) {
+                                if (owlClass.equals( axiom1.getSubClass())) {
+                                    definition_of_defined_concept = axiom1.getSuperClass();
+                                    axiomDefinition = axiom1;
+                                    break;
+                                }else if (owlClass.equals(axiom1.getSuperClass())) {
+                                    definition_of_defined_concept = axiom1.getSubClass();
+                                    axiomDefinition = axiom1;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (axiomDefinition == null){ // todo
+                    random_after_type1--;
+                    continue;
+                }
+                axiomSet.remove(axiomDefinition);
+                List<Formula> formulas = ct.AxiomConverter_rightAnd(axiomSet);
+
+
+                Formula definition = ct.ClassExpressionConverter(definition_of_defined_concept);
+                List<Formula> ans = new ArrayList<>();
+                if (definition != null) {
+                    for (Formula f : formulas) {
+                        Formula temp = inf.AckermannReplace(ct.getConceptfromClass(owlClass), f, definition);
+                        if(!TautologyChecker.isTautology(temp)) ans.add(temp);
+                    }
+                }
+                Set<OWLAxiom> replaced_axioms = bc.toOWLAxioms(ans);
+                for (OWLAxiom axiom : replaced_axioms) {
+                    Set<OWLClass> classes = axiom.getClassesInSignature();
+                    for (OWLClass c1 : classes) {
+                        if (map.getOrDefault(c1, null) == null) {
+                            map.put(c1, new HashSet<>());
+                        }
+                        map.get(c1).add((OWLLogicalAxiom) axiom);
+                    }
+                    axioms.add((OWLLogicalAxiom) axiom);
+
+                }
+            }
+            //再计算type2，这里偷懒了没有让他去删除
+            int addTotype4 = 0;
+            for(OWLClass owlClass : random_type2Set){
+                Set<OWLLogicalAxiom> axiomSet = map.get(owlClass);
+                axiomSet.removeAll(deletedAxioms);
+                if(axiomSet.size() == 0){
+                    random_after_type2--;
+                }else {
+                    for (OWLLogicalAxiom axiom : axiomSet) {
+                        if (axiom instanceof OWLSubClassOfAxiom) {
+                            if (((OWLSubClassOfAxiom) axiom).getSubClass().toString().contains(owlClass.toString())) {
+                                if (!(((OWLSubClassOfAxiom) axiom).getSubClass() instanceof OWLClass)) {
+                                    random_after_type2--;
+                                    addTotype4++;
+                                    // System.out.println(owlClass);
+                                    // System.out.println(axiom);
+                                    break;
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+            //再计算random_after_type4
+            OWLOntologyManager manager3 = OWLManager.createOWLOntologyManager();
+            OWLOntology ontoAfter = manager3.createOntology();
+            for(OWLAxiom axiom : axioms)
+                manager3.applyChange(new AddAxiom(ontoAfter, axiom));
+            Set<OWLClass> classesAfter = ontoAfter.getClassesInSignature();
+            classesAfter.removeAll(random_type1Set);
+            classesAfter.removeAll(random_type2Set);
+            classesAfter.removeAll(random_type3Set);
+            random_after_type4 = Sets.intersection(random_type4Set,classesAfter).size()+addTotype4;
+            int all_random_after_type = random_after_type1+random_after_type2+random_after_type3+random_after_type4;
+            String nowLog3 ="3 "+ pathO1+","+pathO2 +" " + all_random_after_type+" "+
+                    random_after_type1+" " + random_after_type2 +" "+ random_after_type3 + " "+random_after_type4;
+            System.out.println(nowLog);
+            System.out.println(nowLog2);
+            System.out.println(nowLog3);
+
+            writeFile.writeFile(dictPath + filelog, nowLog + "\n");
+            writeFile.writeFile(dictPath + filelog, nowLog2 + "\n");
+            writeFile.writeFile(dictPath + filelog, nowLog3 + "\n");
+
+            System.out.println();
+
+
+
+
+
+        }
+
+
+    }
+
+
+    public Set<OWLLogicalAxiom> eliminateDefinedConceptsAndBasedConcepts(Set<OWLLogicalAxiom> axioms,Set<OWLClass> concepts,saveMetrics metrics)throws Exception{
+        double time1 = System.currentTimeMillis();
+        BackConverter bc = new BackConverter();
+        Converter ct = new Converter();
+        Inferencer inf = new Inferencer();
+        Map<OWLClass,Set<OWLLogicalAxiom>> map = new HashMap<>();
+        Set<OWLClass> left = new HashSet<>();//出现在过左边的entity
+        Set<OWLClass> right = new HashSet<>();//出现在过右边的entity
+        for(OWLLogicalAxiom axiom : axioms){
+            if(axiom instanceof OWLEquivalentClassesAxiom){
+                OWLEquivalentClassesAxiom owlECA = (OWLEquivalentClassesAxiom) axiom;
+                Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms = owlECA.asOWLSubClassOfAxioms();
+                for (OWLSubClassOfAxiom owlSCOA : owlSubClassOfAxioms) {
+                    // if(owlSCOA.getSubClass() instanceof OWLClass) {
+                    left.addAll(owlSCOA.getSubClass().getClassesInSignature());
+                    right.addAll(owlSCOA.getSuperClass().getClassesInSignature());
+                    break;
+                    //  }else if(owlSCOA.getSuperClass() instanceof OWLClass){
+                    //      right.addAll(owlSCOA.getSubClass().getClassesInSignature());
+                    //      left.addAll(owlSCOA.getSuperClass().getClassesInSignature());
+                    //       break;
+                    //  }
+                }
+            }else if(axiom instanceof  OWLSubClassOfAxiom){
+                OWLSubClassOfAxiom owlSCOA = (OWLSubClassOfAxiom) axiom;
+                left.addAll(owlSCOA.getSubClass().getClassesInSignature());
+                right.addAll(owlSCOA.getSuperClass().getClassesInSignature());
+            }
+            //记录forgetting concept对应的axioms
+            Set<OWLClass> temp = axiom.getClassesInSignature();
+            temp.retainAll(concepts);
+            for(OWLClass c : temp){
+                if(map.getOrDefault(c,null) == null){
+                    map.put(c,new HashSet<>());
+                }
+                map.get(c).add(axiom);
+            }
+
+        }
+
+        Set<OWLClass> tempLeft = new HashSet<>(left);//副本
+        int tempConceptSize = concepts.size();//副本
+        //只保留要遗忘的符号的
+        left.retainAll(concepts);
+        int optimizeNum1 = 0,optimizeNum2 = 0, optimizeNum3 = 0,optimizeNum4 = 0;// case1 case 2 case3 和 based concept优化
+
+        //记录被移除的axiom 目的是当同一个axiom涉及多个forgetting signature时，要把后处理的forgetting signature涉及的已经处理过的axiom给删除掉
+        Set<OWLLogicalAxiom> removedAxioms = new HashSet<>();
+
+        for(OWLClass c: left){
+
+            Set<OWLLogicalAxiom> axiom_set_contained_defined_concept = map.get(c);
+            axiom_set_contained_defined_concept.removeAll(removedAxioms);
+            OWLEquivalentClassesAxiom definition_axiom = null;
+            OWLClassExpression definition_of_defined_concept = null;
+
+            int haveEquiv = 0;
+
+
+            for(OWLLogicalAxiom temp : axiom_set_contained_defined_concept){
+                if(temp instanceof OWLEquivalentClassesAxiom) {
+                    haveEquiv = 1;
+                    for(OWLSubClassOfAxiom owlSCOA :((OWLEquivalentClassesAxiom)temp).asOWLSubClassOfAxioms()){
+                        if(owlSCOA.getSubClass().equals(c)){
+
+                            definition_axiom = (OWLEquivalentClassesAxiom)temp;
+                            definition_of_defined_concept = owlSCOA.getSuperClass();
+
+                        }else if(owlSCOA.getSuperClass().equals(c)){
+                            definition_axiom =  (OWLEquivalentClassesAxiom)temp;
+                            definition_of_defined_concept = owlSCOA.getSubClass();
+                            throw new Exception();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if(haveEquiv == 1 && definition_axiom == null){//有A and B = C and D的形式 要全部保留
+                /*
+                if(axiom_set_contained_defined_concept.size()  == 1) {
+                    optimizeNum1++;
+                    concepts.remove(c);
+                    axioms.removeAll(axiom_set_contained_defined_concept);
+                    removedAxioms.addAll(axiom_set_contained_defined_concept);
+                }
+
+                 */
+
+            }else if(haveEquiv == 0 && !right.contains(c)){//只有 A in C 或者 A and B in C这样的
+                optimizeNum2++;
+                concepts.remove(c);
+                axioms.removeAll(axiom_set_contained_defined_concept);
+                removedAxioms.addAll(axiom_set_contained_defined_concept);
+
+            } else if(haveEquiv == 1 && definition_axiom != null){// 有A的定义式的情况，拿A的右边的表达式去替换所有出现A的位置的东西
+                if(axiom_set_contained_defined_concept.size()  == 1) optimizeNum1++;
+                else optimizeNum3++;
+                concepts.remove(c);
+                axioms.removeAll(axiom_set_contained_defined_concept);
+                removedAxioms.addAll(axiom_set_contained_defined_concept);
+                axiom_set_contained_defined_concept.remove(definition_axiom);
+                List<Formula> formulas = ct.AxiomsConverter(axiom_set_contained_defined_concept);
+                Formula definition = ct.ClassExpressionConverter(definition_of_defined_concept);
+                List<Formula> ans = new ArrayList<>();
+                if(definition != null) {
+                    for (Formula f : formulas) {
+                        ans.add(inf.AckermannReplace(ct.getConceptfromClass(c), f, definition));
+                    }
+                }
+                Set<OWLAxiom> replaced_axioms = bc.toOWLAxioms(ans);
+                for(OWLAxiom axiom : replaced_axioms){
+                    Set<OWLClass> classes = axiom.getClassesInSignature();
+                    classes.retainAll(concepts);
+                    for(OWLClass c1 : classes){
+                        if(map.getOrDefault(c1,null) == null){
+                            map.put(c1,new HashSet<>());
+                        }
+                        map.get(c1).add((OWLLogicalAxiom)axiom);
+                    }
+                    if(axiom instanceof OWLSubClassOfAxiom){
+                        right.addAll(((OWLSubClassOfAxiom)axiom).getSuperClass().getClassesInSignature());
+                        tempLeft.addAll(((OWLSubClassOfAxiom)axiom).getSubClass().getClassesInSignature());//todo add
+                    }else throw  new Exception();/*
+                    else if(axiom instanceof OWLEquivalentClassesAxiom){
+                        OWLEquivalentClassesAxiom owlECA = (OWLEquivalentClassesAxiom) axiom;
+                        Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms = owlECA.asOWLSubClassOfAxioms();
+                        int tag = 1;
+                        for(OWLSubClassOfAxiom axiom1 : owlSubClassOfAxioms){
+                            if(axiom1.getSubClass() instanceof OWLClass){
+                                tag = 0;
+                                right.addAll(axiom1.getSuperClass().getClassesInSignature());
+                            }else if(axiom1.getSuperClass() instanceof OWLClass){
+                                tag = 0;
+                                right.addAll(axiom1.getSubClass().getClassesInSignature());
+                            }
+                            break;
+                        }
+                        if(tag == 1){
+                            right.addAll(axiom.getClassesInSignature());
+                        }
+                    }
+                    */
+                    //else throw new Exception();
+                    axioms.add((OWLLogicalAxiom)axiom);
+                }
+            }
+        }
+
+        System.out.println("before remove defined concept size "+ tempConceptSize +" after "+concepts.size());
+
+        //计算base concept
+        tempConceptSize = concepts.size();
+        right.removeAll(tempLeft);//此时right和left不相交，表示只出现在右边的class
+        right.retainAll(concepts);
+        for(OWLClass c : right){
+            AtomicConcept atomicConcept = ct.getConceptfromClass(c);
+            Set<OWLLogicalAxiom> axiom_set_contained_based_concept = map.get(c);
+            axiom_set_contained_based_concept.removeAll(removedAxioms);
+            int tag = 0;
+            for(OWLLogicalAxiom axiom : axiom_set_contained_based_concept){
+                if(axiom instanceof OWLEquivalentClassesAxiom) tag = 1;
+            }
+            if(tag == 0){
+                optimizeNum4++;
+                // concepts.remove(c); // todo
+                axioms.removeAll(axiom_set_contained_based_concept);
+                removedAxioms.addAll(axiom_set_contained_based_concept);
+
+                List<Formula> formulas = ct.AxiomsConverter(axiom_set_contained_based_concept);
+                Formula definition = TopConcept.getInstance();
+                List<Formula> ans = new ArrayList<>();
+                for (Formula f : formulas) {
+                    ans.add(inf.AckermannReplace(atomicConcept, f, definition));
+                }
+
+                Set<OWLAxiom> replaced_axioms = bc.toOWLAxioms(ans);
+                for(OWLAxiom axiom : replaced_axioms){
+                    Set<OWLClass> classes = axiom.getClassesInSignature();
+                    classes.retainAll(concepts);
+                    for(OWLClass c1 : classes){
+                        if(map.getOrDefault(c1,null) == null){
+                            map.put(c1,new HashSet<>());
+                        }
+                        map.get(c1).add((OWLLogicalAxiom)axiom);
+                    }
+                    axioms.add((OWLLogicalAxiom)axiom);
+                }
+
+
+            }
+        }
+        double time2 = System.currentTimeMillis();
+        metrics.optimizeNum1 = optimizeNum1;
+        metrics.optimizeNum2 = optimizeNum2;
+        metrics.optimizeNum3 = optimizeNum3;
+        metrics.optimizeNum4 = optimizeNum4;
+        metrics.optimizeTime = (time2-time1);
+
+        System.out.println("before replaced based concept size "+ tempConceptSize +" after "+concepts.size());
+        //System.out.println(optimizeNum1+" "+optimizeNum2+" "+optimizeNum3+" "+optimizeNum4 + " "+concepts.size());
+        return axioms;
+    }
+
+
 
     public static void main(String[] args)throws Exception{
 
-
-       // testUI("PARTIII",0.1);
-       // testUI("PARTIII",0.3);
-        testUI("PARTII",0.4);
-        testUI("PARTII",0.3);
-
-        /*
-        OWLOntology o1 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(
-                "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/ontology_202001.owl"));
-        OWLOntology v = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(
-                "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/0200102003.owl"));
-        checkDefinedConceptChange(o1,v);
-
-         */
-
+        testUI("Oxford-ISG","PARTI",0.3);
+      //  testUI("Oxford-ISG","PARTIII",0.3);
+      //  testUI("BioPortal","PARTII",0.3);
+        testUI("BioPortal","PARTI",0.3);
 
         //AAAIJustify();
         //testDefinedConceptsNums();
         //testAAAI22();
         //staticalAAAI22();
-        //testUI("PARTII");
+        //testUI("PARTII",0.3);
 
         //testGhadah();
         //relationships();
         //statisticsBio();
-        //String dictPath = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/";
+
+        ///String[][] s1 = new String[][]{{"ontology_201601","ontology_201607"},{"ontology_201601","ontology_201701"},/*{"ontology_201601","ontology_201801"},*/
+        //        {"ontology_201607","ontology_201701"},/*{"ontology_201701","ontology_201801"},{"ontology_201707","ontology_201801"},*/{"ontology_201901","ontology_201907"}
+        ////        ,{"ontology_201607","ontology_201601"},{"ontology_201701","ontology_201601"},{"ontology_201701","ontology_201607"},{"ontology_201707","ontology_201701"}
+        //        ,{"ontology_201801","ontology_201701"},{"ontology_201801","ontology_201707"},{"ontology_201807","ontology_201801"},{"ontology_201901","ontology_201801"}
+        //        ,{"ontology_201901","ontology_201807"},{"ontology_201907","ontology_201901"},{"ontology_202007","ontology_202003"}};
+//        System.out.println(s1.length);
+       // String dictPath = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/";
         //String dictPath = "/Users/liuzhao/Desktop/experiments/Test_data_for_forgetting/TestData/Corpus_2/";
         //String dictPath = "/Users/liuzhao/nju/NCBO/data/Part_Ⅵ/";
-        //List<OWLOntology>ans = test3(dictPath,"ontology_202001.owl","ontology_201907.owl");
-        //OWLOntology onto1 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(dictPath+"ontology_201707.owl"));
-        //OWLOntology onto2 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(dictPath+"ontology_201801.owl"));
+       // for(String[] s : s1){
+       //     List<OWLOntology>ans = test3(dictPath,s[0],s[1]);
+
+      //  }
+       // OWLOntology onto1 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(dictPath+"ontology_201707.owl"));
+      //  OWLOntology onto2 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(dictPath+"ontology_201801.owl"));
         //OWLOntology ui = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(dictPath+"0170701801.owl"));
         //OWLOntology witness = checkWitness(ans.get(0),ans.get(1),ans.get(2),"/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/log.txt",
         //        "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/20011907");
@@ -1611,7 +2596,8 @@ public class TestForgetting {
         //OWLOntology onto2 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(dictPath+"ontology_201801.owl"));
         //OWLOntology witness = checkWitness(ans.get(0),ans.get(1),ans.get(2),"/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/log.txt",
         //        "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/20011907");
-        System.out.println("done!");
+        //System.out.println("done!");
     }
+
 
 }

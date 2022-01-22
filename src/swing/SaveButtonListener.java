@@ -13,7 +13,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JList;
 
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.io.OWLXMLOntologyFormat;
+//import org.semanticweb.owlapi.io.OWLXMLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
@@ -55,8 +55,8 @@ public class SaveButtonListener implements ActionListener {
 				OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
 				OutputStream os = new FileOutputStream(file);
 				OWLOntology ontology = bc.toOWLOntology(result_list);
-				manager.saveOntology(ontology, new OWLXMLOntologyFormat(), os);
-
+				//manager.saveOntology(ontology, new OWLXMLOntologyFormat(), os);
+				manager.saveOntology(ontology, os);
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

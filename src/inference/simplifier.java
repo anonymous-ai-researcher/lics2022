@@ -8,7 +8,6 @@ import convertion.Converter;
 import extraction.SubsetExtractor;
 import formula.Formula;
 import javafx.util.Pair;
-import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import roles.AtomicRole;
@@ -267,15 +266,15 @@ public class simplifier {
                 OWLEquivalentClassesAxiom owlECA = (OWLEquivalentClassesAxiom) axiom;
                 Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms = owlECA.asOWLSubClassOfAxioms();
                 for (OWLSubClassOfAxiom owlSCOA : owlSubClassOfAxioms) {
-                    if(owlSCOA.getSubClass() instanceof OWLClass) {
+                   // if(owlSCOA.getSubClass() instanceof OWLClass) {
                         left.addAll(owlSCOA.getSubClass().getClassesInSignature());
                         right.addAll(owlSCOA.getSuperClass().getClassesInSignature());
                         break;
-                    }else if(owlSCOA.getSuperClass() instanceof OWLClass){
-                        right.addAll(owlSCOA.getSubClass().getClassesInSignature());
-                        left.addAll(owlSCOA.getSuperClass().getClassesInSignature());
-                        break;
-                    }
+                  //  }else if(owlSCOA.getSuperClass() instanceof OWLClass){
+                  //      right.addAll(owlSCOA.getSubClass().getClassesInSignature());
+                  //      left.addAll(owlSCOA.getSuperClass().getClassesInSignature());
+                 //       break;
+                  //  }
                 }
             }else if(axiom instanceof  OWLSubClassOfAxiom){
                 OWLSubClassOfAxiom owlSCOA = (OWLSubClassOfAxiom) axiom;
@@ -325,7 +324,7 @@ public class simplifier {
                         }else if(owlSCOA.getSuperClass().equals(c)){
                             definition_axiom =  (OWLEquivalentClassesAxiom)temp;
                             definition_of_defined_concept = owlSCOA.getSubClass();
-
+                            //throw new Exception();
                         }
                         break;
                     }
@@ -333,12 +332,15 @@ public class simplifier {
             }
 
             if(haveEquiv == 1 && definition_axiom == null){//有A and B = C and D的形式 要全部保留
+                /*
                 if(axiom_set_contained_defined_concept.size()  == 1) {
                     optimizeNum1++;
                     concepts.remove(c);
                     axioms.removeAll(axiom_set_contained_defined_concept);
                     removedAxioms.addAll(axiom_set_contained_defined_concept);
                 }
+
+                 */
 
             }else if(haveEquiv == 0 && !right.contains(c)){//只有 A in C 或者 A and B in C这样的
                 optimizeNum2++;
@@ -353,7 +355,7 @@ public class simplifier {
                 axioms.removeAll(axiom_set_contained_defined_concept);
                 removedAxioms.addAll(axiom_set_contained_defined_concept);
                 axiom_set_contained_defined_concept.remove(definition_axiom);
-                List<Formula> formulas = ct.AxiomsConverter(axiom_set_contained_defined_concept);//todo AxiomConverter_rightAnd 之前是AxiomConverter
+                List<Formula> formulas = ct.AxiomsConverter(axiom_set_contained_defined_concept);
                 Formula definition = ct.ClassExpressionConverter(definition_of_defined_concept);
                 List<Formula> ans = new ArrayList<>();
                 if(definition != null) {
@@ -373,7 +375,8 @@ public class simplifier {
                     }
                     if(axiom instanceof OWLSubClassOfAxiom){
                         right.addAll(((OWLSubClassOfAxiom)axiom).getSuperClass().getClassesInSignature());
-                    }/*
+                        tempLeft.addAll(((OWLSubClassOfAxiom)axiom).getSubClass().getClassesInSignature());//todo add
+                    }else throw  new Exception();/*
                     else if(axiom instanceof OWLEquivalentClassesAxiom){
                         OWLEquivalentClassesAxiom owlECA = (OWLEquivalentClassesAxiom) axiom;
                         Collection<OWLSubClassOfAxiom> owlSubClassOfAxioms = owlECA.asOWLSubClassOfAxioms();
@@ -405,7 +408,6 @@ public class simplifier {
         tempConceptSize = concepts.size();
         right.removeAll(tempLeft);//此时right和left不相交，表示只出现在右边的class
         right.retainAll(concepts);
-
         for(OWLClass c : right){
             AtomicConcept atomicConcept = ct.getConceptfromClass(c);
             Set<OWLLogicalAxiom> axiom_set_contained_based_concept = map.get(c);
@@ -416,7 +418,7 @@ public class simplifier {
             }
             if(tag == 0){
                 optimizeNum4++;
-                concepts.remove(c);
+               // concepts.remove(c); // todo
                 axioms.removeAll(axiom_set_contained_based_concept);
                 removedAxioms.addAll(axiom_set_contained_based_concept);
 
@@ -451,7 +453,7 @@ public class simplifier {
         metrics.optimizeTime = (time2-time1);
 
         System.out.println("before replaced based concept size "+ tempConceptSize +" after "+concepts.size());
-        System.out.println(optimizeNum1+" "+optimizeNum2+" "+optimizeNum3+" "+optimizeNum4 + " "+concepts.size());
+        //System.out.println(optimizeNum1+" "+optimizeNum2+" "+optimizeNum3+" "+optimizeNum4 + " "+concepts.size());
         return axioms;
     }
 

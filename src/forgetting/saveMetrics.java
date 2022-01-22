@@ -18,7 +18,7 @@ public class saveMetrics {
         success = 0;
     }
     public String returnMetrics(){
-        return optimizeNum1 +" "+optimizeNum2+" "+optimizeNum3+" "+optimizeNum4+" "+optimizeTime;
+        return optimizeNum1 +","+optimizeNum2+","+optimizeNum3+","+optimizeNum4+","+optimizeTime;
     }
 
 

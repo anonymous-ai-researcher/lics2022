@@ -1,6 +1,7 @@
 
 package apiForPy;
 import com.google.common.collect.Sets;
+import connectives.Inclusion;
 import forgetting.Fame;
 import forgetting.Forgetter;
 import forgetting.LDiff;
@@ -14,7 +15,7 @@ import org.omg.Messaging.SYNC_WITH_TRANSPORT;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentTarget;
-import org.semanticweb.owlapi.io.OWLXMLOntologyFormat;
+//import org.semanticweb.owlapi.io.OWLXMLOntologyFormat;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import simplification.*;
@@ -29,6 +30,9 @@ import java.text.Normalizer;
 import java.util.*;
 
 public class showData {
+    static{
+        System.out.println("api for py");
+    }
     public void INIT(){
         //DefinerIntroducer.owldefiner_set = new LinkedHashSet<>();;
         //DefinerIntroducer.definer_set = new HashSet<>();
@@ -240,6 +244,7 @@ public class showData {
 
 
     public static  void main(String arg[]) throws Exception {
+
         showData S = new showData();
         List<List> temp = S.getAxiomsShortForm("/Users/liuzhao/nju/ontologyCompare/FINISHED/edam/v1.21.owl");
         for(Object i: temp.get(0)){

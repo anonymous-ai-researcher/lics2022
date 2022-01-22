@@ -7,9 +7,9 @@ import formula.Formula;
 
 import org.semanticweb.HermiT.Configuration;
 import org.semanticweb.HermiT.Reasoner;
-import org.semanticweb.HermiT.ReasonerFactory;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.reasoner.NodeSet;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import roles.AtomicRole;
 import concepts.AtomicConcept;
 import convertion.BackConverter;
@@ -118,7 +118,7 @@ public class LDiff {
 		long startTime_2 = System.currentTimeMillis();
 		System.out.println("ui size: "+uniform_interpolant.size());
 		System.gc();
-		OWLReasoner  reasoner1 = new ReasonerFactory().createReasoner(onto_1);
+		OWLReasoner  reasoner1 = new Reasoner.ReasonerFactory().createReasoner(onto_1);
 		int i = 0;
 		for (OWLAxiom axiom : uniform_interpolant) {
 			//if(!elkEntailment.entailed(reasoner1,axiom)){
@@ -178,14 +178,14 @@ public class LDiff {
 	public static void main(String[] args)
 			throws Exception {
 
-		String filePath1 = "/Users/Desktop/NCBOcrawler/GO/go1803.owl";
-		String filePath2 = "/Users/Desktop/NCBOcrawler/GO/go1703.owl";
+		String filePath1 = "/Users/liuzhao/Desktop/NCBOcrawler/GO/go1703.owl";
+		String filePath2 = "/Users/liuzhao/Desktop/NCBOcrawler/GO/go1803.owl";
 		OWLOntologyManager manager1 = OWLManager.createOWLOntologyManager();
 		OWLOntology onto_1 = manager1.loadOntologyFromOntologyDocument(new File(filePath1));
 		OWLOntologyManager manager2 = OWLManager.createOWLOntologyManager();
 		OWLOntology onto_2 = manager2.loadOntologyFromOntologyDocument(new File(filePath2));
 		LDiff lDiff = new LDiff();
-		lDiff.compute_LDiff(onto_1,onto_2,"/Users/Desktop/NCBOcrawler");
+		lDiff.compute_LDiff(onto_1,onto_2,"/Users/liuzhao/Desktop/NCBOcrawler");
 
 
 

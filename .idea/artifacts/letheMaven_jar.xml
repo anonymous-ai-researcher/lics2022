@@ -1,0 +1,42 @@
+<component name="ArtifactManager">
+  <artifact name="letheMaven:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/letheMaven_jar</output-path>
+    <root id="root">
+      <element id="archive" name="letheMaven.jar">
+        <element id="module-output" name="letheMaven" />
+      </element>
+      <element id="library" level="project" name="Maven: org.json4s:json4s-core_2.12:3.6.7" />
+      <element id="library" level="project" name="Maven: org.json4s:json4s-native_2.12:3.6.7" />
+      <element id="library" level="project" name="Maven: com.dongxiguo.zero-log:context_2.11:0.3.6" />
+      <element id="library" level="project" name="Maven: ch.qos.logback:logback-core:1.2.3" />
+      <element id="library" level="project" name="Maven: org.slf4j:slf4j-api:1.7.25" />
+      <element id="library" level="project" name="guava-21.0" />
+      <element id="library" level="project" name="Maven: org.json4s:json4s-ast_2.12:3.6.7" />
+      <element id="library" level="project" name="Maven: org.json4s:json4s-scalap_2.12:3.6.7" />
+      <element id="library" level="project" name="Maven: com.typesafe.scala-logging:scala-logging_2.12:3.9.2" />
+      <element id="library" level="project" name="Maven: net.sourceforge.owlapi:owlapi-apibinding:3.5.2" />
+      <element id="library" level="project" name="Maven: net.sourceforge.owlapi:owlapi-parsers:3.5.2" />
+      <element id="library" level="project" name="Maven: com.thoughtworks.paranamer:paranamer:2.8" />
+      <element id="library" level="project" name="Maven: org.scala-lang.modules:scala-swing_2.12:2.1.1" />
+      <element id="library" level="project" name="Maven: net.sourceforge.owlapi:owlapi-oboformat:3.5.2" />
+      <element id="library" level="project" name="Maven: net.sf.trove4j:trove4j:3.0.3" />
+      <element id="library" level="project" name="Maven: com.google.guava:guava:18.0" />
+      <element id="library" level="project" name="Maven: net.sourceforge.owlapi:owlapi-distribution:3.5.2" />
+      <element id="library" level="project" name="commons-lang3-3.6" />
+      <element id="library" level="project" name="Maven: org.scala-lang:scala-reflect:2.12.7" />
+      <element id="library" level="project" name="Maven: net.sourceforge.owlapi:owlapi-tools:3.5.2" />
+      <element id="library" level="project" name="Maven: org.scala-lang.modules:scala-parser-combinators_2.12:1.1.2" />
+      <element id="library" level="project" name="trove4j-3.0.3" />
+      <element id="library" level="project" name="Maven: com.dongxiguo:fastring_2.11:0.2.4" />
+      <element id="library" level="project" name="log4j" />
+      <element id="library" level="project" name="Maven: org.apache.felix:org.osgi.core:1.4.0" />
+      <element id="library" level="project" name="Maven: net.sourceforge.owlapi:owlapi-api:3.5.2" />
+      <element id="library" level="project" name="org.semanticweb.HermiT" />
+      <element id="library" level="project" name="Maven: com.dongxiguo:zero-log_2.11:0.3.6" />
+      <element id="library" level="project" name="Maven: net.sourceforge.owlapi:owlapi-impl:3.5.2" />
+      <element id="library" level="project" name="lethe_2.11-0.026" />
+      <element id="library" level="project" name="Maven: ch.qos.logback:logback-classic:1.2.3" />
+      <element id="library" level="project" name="Maven: org.scala-lang:scala-library:2.11.6" />
+    </root>
+  </artifact>
+</component>

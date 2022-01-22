@@ -418,8 +418,17 @@ public class Inferencer {
 				Formula nowCheck = new Inclusion(and2,and);
 				if(elkEntailment.entailed(reasoner,bc.toOWLSubClassOfAxiom(nowCheck),2)){
 					tag = 1;
+					/*
 					Formula temp = new Inclusion(pea_premise.getSubFormulas().get(0),new Exists(pea_premise.getSubFormulas().get(1).
 							getSubFormulas().get(0),nsa_premise.getSubFormulas().get(1)));
+
+					 */
+					if(nsa_premise.getSubFormulas().get(1) instanceof And)
+						exceptConcept2.addAll(((And)nsa_premise.getSubFormulas().get(1)).getSubformulae());//todo
+					else exceptConcept2.add(nsa_premise.getSubFormulas().get(1));//todo
+					Formula temp = new Inclusion(pea_premise.getSubFormulas().get(0),new Exists(pea_premise.getSubFormulas().get(1).
+							getSubFormulas().get(0),And.getAnd(exceptConcept2)));//todo
+
 					if(!tc.isTautology(temp)) output_list.add(temp);
 					//BackTrack.addFatherHash(temp.clone(),pea_premise.clone(),nsa_premise.clone(),7);
 				}
@@ -583,7 +592,7 @@ public class Inferencer {
 				negative_exists_premises.add(formula);
 			}
 		}
-		/*
+
 		System.out.println("2  "+ positive_star_premises.size());
 		System.out.println("2  "+ negative_star_premises.size());
 
@@ -591,7 +600,7 @@ public class Inferencer {
 
 		System.out.println("2  "+ negative_exists_premises.size());
 
-		 */
+
 
 
 
@@ -652,8 +661,8 @@ public class Inferencer {
 
 				Formula inclusion = new Inclusion(pe_subsumer_filler, ne_subsumee_filler);
 				OWLAxiom axiom = bc.toOWLAxiom(inclusion);
-				//if (elkEntailment.entailed(reasoner, axiom, 2)) {
-				if (elkEntailment.hasChecked_OnO2.containsKey(axiom) && elkEntailment.entailed(reasoner, axiom, 2)) {
+				if (elkEntailment.entailed(reasoner, axiom, 2)) {
+				//if (elkEntailment.hasChecked_OnO2.containsKey(axiom) && elkEntailment.entailed(reasoner, axiom, 2)) {
 
 					Formula new_inclusion = null;
 					if (ne_subsumee instanceof Exists) {

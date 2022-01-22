@@ -6,16 +6,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.*;
 
-import connectives.Equivalence;
+import connectives.*;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 
 import concepts.AtomicConcept;
 import concepts.BottomConcept;
 import concepts.TopConcept;
-import connectives.And;
-import connectives.Exists;
-import connectives.Inclusion;
 import formula.Formula;
 import individual.Individual;
 import roles.AtomicRole;
@@ -506,6 +503,12 @@ public class BackConverter {
 				System.out.println("1");
 			return factory.getOWLObjectIntersectionOf(conjunct_set);
 		}
+		/*
+		else if(formula instanceof Negation){
+			return factory.getOWLObjectComplementOf(toOWLClassExpression(formula.getSubFormulas().get(0)));
+		}
+
+		 */
 
 		assert false : "Unsupported ClassExpression: " + formula;
 		return null;

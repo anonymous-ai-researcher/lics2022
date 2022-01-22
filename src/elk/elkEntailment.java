@@ -38,12 +38,14 @@ public class elkEntailment {
         int all = ui.size();
         int i = 0 ;
         for(Formula formula : ui){
-
+            /*
             if(Sets.intersection(formula.get_c_sig(),conceptSet).size() != 0 || Sets.intersection(formula.get_r_sig(),roleSet).size() != 0){
                 System.out.println(formula);
                 throw new Exception("there exits new symbols!");
 
             }
+
+             */
             OWLAxiom axiom = ct.toOWLAxiom(formula);
             if(!reasoner.isEntailed(axiom)){
                 System.out.println(formula);
@@ -89,7 +91,7 @@ public class elkEntailment {
         }
 
         boolean isentailed = false;
-        isentailed = reasoner.isEntailed(i);
+        isentailed = reasoner. isEntailed(i);
         /*
         if (i instanceof OWLSubObjectPropertyOfAxiom){
             OWLSubObjectPropertyOfAxiom now = (OWLSubObjectPropertyOfAxiom) i;

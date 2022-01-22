@@ -7,7 +7,7 @@ import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.*;
-
+import java.lang.Class;
 import Test.TestForgetting;
 import Test.writeFile;
 import checkTautology.TautologyChecker;
@@ -37,6 +37,10 @@ import inference.simplifier;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import roles.AtomicRole;
 import Test.writeFile.*;
+import uk.ac.man.cs.lethe.forgetting.*;
+import uk.ac.man.cs.lethe.interpolation.IOWLInterpolator;
+import uk.ac.man.cs.lethe.interpolation.*;
+
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
@@ -51,7 +55,8 @@ public class Forgetter {
     	List<Formula> res = Forgetting(roles,concepts,onto,new saveMetrics());
     	BackConverter bc = new BackConverter();
     	Set<OWLAxiom> axioms = bc.toOWLAxioms(res);
-    	return axioms;
+
+		return axioms;
 	}
 	/**
 	 *这个是CIKM版本的forgetting 不加优化
@@ -89,7 +94,16 @@ public class Forgetter {
 
 		//初始化reasoner
 		System.out.println("hermit begin");
-		OWLReasoner  hermit = new ReasonerFactory().createReasoner(onto);
+
+		OWLReasoner hermit = null;
+		try {
+
+
+			hermit = new ReasonerFactory().createReasoner(onto);
+		}catch (Exception e){
+			System.out.println(e);
+			return null;
+		}
 		System.out.println("hermit finished");
 
 		//forgetting signature数据结构转换
@@ -99,6 +113,7 @@ public class Forgetter {
 		System.out.println("The Forgetting Starts:");
 		System.out.println("The forgetting task is to eliminate [" + c_sig.size() + "] concept names and ["
 				+ r_sig.size() + "] role names from [" + formula_list_normalised.size() + "] normalized axioms");
+
 		if (!r_sig.isEmpty()) {
 			List<Formula> r_sig_list_normalised = se.getRoleSubset(r_sig, formula_list_normalised);
 			List<Formula> pivot_list_normalised = null;
@@ -155,6 +170,8 @@ public class Forgetter {
 			formula_list_normalised.addAll(c_sig_list_normalised);
 
 		}
+
+
 
 
 
@@ -330,7 +347,15 @@ public class Forgetter {
 
 		//初始化reasoner
 		System.out.println("hermit begin");
-		OWLReasoner  hermit = new ReasonerFactory().createReasoner(onto);
+		OWLReasoner hermit = null;
+		try {
+
+
+		hermit = new ReasonerFactory().createReasoner(onto);
+		}catch (Exception e){
+			System.out.println(e);
+			return null;
+		}
 		//OWLReasoner  hermit = new Reasoner(new Configuration(),onto);
 		System.out.println("hermit finished");
 
@@ -341,6 +366,7 @@ public class Forgetter {
 		System.out.println("The Forgetting Starts:");
 		System.out.println("The forgetting task is to eliminate [" + c_sig.size() + "] concept names and ["
 				+ r_sig.size() + "] role names from [" + formula_list_normalised.size() + "] normalized axioms");
+
 		if (!r_sig.isEmpty()) {
 			List<Formula> r_sig_list_normalised = se.getRoleSubset(r_sig, formula_list_normalised);
 			List<Formula> pivot_list_normalised = null;
@@ -388,16 +414,16 @@ public class Forgetter {
 
 					pivot_list_normalised = di.introduceDefiners(concept, pivot_list_normalised);
 					pivot_list_normalised = inf.combination_A(concept, pivot_list_normalised, onto,hermit);
-					/*todo cyclic check
-					for(Formula formula : pivot_list_normalised){
-						Set<AtomicConcept> common = Sets.intersection(formula.getSubFormulas().get(0).get_c_sig(),formula.getSubFormulas().get(1).get_c_sig());
-						if((Sets.intersection(common,c_sig).size()!=0|| Sets.intersection(common,di.definer_set).size()!=0)){
-							System.out.println(formula);
-							throw new Exception();
-						}
-					}
+					//todo cyclic check
+					//for(Formula formula : pivot_list_normalised){
+					//	Set<AtomicConcept> common = Sets.intersection(formula.getSubFormulas().get(0).get_c_sig(),formula.getSubFormulas().get(1).get_c_sig());
+					///	if((Sets.intersection(common,c_sig).size()!=0|| Sets.intersection(common,di.definer_set).size()!=0)){
+					//		System.out.println(formula);
+					//		throw new Exception();
+					//	}
+					//}
 
-					 */
+
 					c_sig_list_normalised.addAll(pivot_list_normalised);
 				}
 				c_sig_list_normalised = new ArrayList<>(new HashSet<>(c_sig_list_normalised));
@@ -408,6 +434,8 @@ public class Forgetter {
 			formula_list_normalised.addAll(c_sig_list_normalised);
 
 		}
+
+
 
 
 
@@ -497,7 +525,8 @@ public class Forgetter {
 				//List<AtomicConcept> definer_set_ordering = ordering(definer_set,d_sig_list_normalised);
 				//for (AtomicConcept concept : definer_set_ordering) {
 				for (AtomicConcept concept : definer_set) {
-				num++;
+					num++;
+					if(num > 6000) break;
 					System.out.println("Forgetting Definer [" + k + "] = " + concept +" definer_set size :"+di.definer_set.size());
 					k++;
 					pivot_list_normalised = se.getConceptSubset(concept, d_sig_list_normalised);
@@ -507,13 +536,35 @@ public class Forgetter {
 					} else if (fc.positive(concept, pivot_list_normalised) == 0) {
 
 						List<Formula> ans = inf.Purify(concept, pivot_list_normalised);
+						/*
+						//todo cyclic check
+						for(Formula formula : ans){
+							Set<AtomicConcept> common = Sets.intersection(formula.getSubFormulas().get(0).get_c_sig(),formula.getSubFormulas().get(1).get_c_sig());
+							if((Sets.intersection(common,c_sig).size()!=0|| Sets.intersection(common,di.definer_set).size()!=0)){
+								num = 10000;
+								//throw new Exception();
+							}
+						}
 
+						 */
 						d_sig_list_normalised.addAll(ans);
 						di.definer_set.remove(concept);
 
 					} else if (fc.negative(concept, pivot_list_normalised) == 0) {
 
 						List<Formula> ans = inf.Purify(concept, pivot_list_normalised);
+						/*
+						//todo cyclic check
+						for(Formula formula : ans){
+							Set<AtomicConcept> common = Sets.intersection(formula.getSubFormulas().get(0).get_c_sig(),formula.getSubFormulas().get(1).get_c_sig());
+							if((Sets.intersection(common,c_sig).size()!=0|| Sets.intersection(common,di.definer_set).size()!=0)){
+								num = 10000;
+								//throw new Exception();
+							}
+						}
+
+						 */
+
 
 						d_sig_list_normalised.addAll(ans);
 						di.definer_set.remove(concept);
@@ -521,16 +572,19 @@ public class Forgetter {
 					} else {
 						pivot_list_normalised = di.introduceDefiners(concept, pivot_list_normalised);
 						pivot_list_normalised = inf.combination_A(concept, pivot_list_normalised ,onto,hermit);
-						/*todo cyclic check
+						/*
+						//todo cyclic check
 						for(Formula formula : pivot_list_normalised){
 							Set<AtomicConcept> common = Sets.intersection(formula.getSubFormulas().get(0).get_c_sig(),formula.getSubFormulas().get(1).get_c_sig());
 							if((Sets.intersection(common,c_sig).size()!=0|| Sets.intersection(common,di.definer_set).size()!=0)){
-								System.out.println("cyclic2");
+								num = 10000;
 								//throw new Exception();
 							}
 						}
 
 						 */
+
+
 						d_sig_list_normalised.addAll(pivot_list_normalised);
 						di.definer_set.remove(concept);
 
@@ -560,12 +614,25 @@ public class Forgetter {
 		double tempTime2 = System.currentTimeMillis();
 		int optSum = metrics.optimizeNum1+metrics.optimizeNum4+metrics.optimizeNum3+metrics.optimizeNum2;
 		System.out.println("message "+conceptsSize+"\t"+(tempTime2-tempTime1)+"\t"+(optSum*1.0/conceptsSize));
+		//return new ArrayList<>(new HashSet<>(formula_list_normalised));
 		return formula_list_normalised;
 	}
 	public static void main(String [] args) throws  Exception {
 
-		testmain();
-
+		//testmain();
+		String ontoPath = "/Users/liuzhao/Desktop/Untitled2.owl";
+		OWLOntologyManager manager =  OWLManager.createOWLOntologyManager();
+		OWLOntology onto = manager.loadOntologyFromOntologyDocument(new File(ontoPath));
+		Set<OWLEntity> concepts = new HashSet<>();
+		for(OWLEntity temp : onto.getSignature()){
+			if(temp.toString().contains("B") || temp.toString().contains("F")) concepts.add(temp);;
+		}
+		System.out.println(concepts);
+		AlchTBoxForgetter now = new AlchTBoxForgetter();
+		AlchTBoxInterpolator te = new AlchTBoxInterpolator();
+		//OWLOntology ans = te.uniformInterpolant(onto,concepts);
+		OWLOntology ans = now.forget(onto,concepts);
+		System.out.println(ans.getLogicalAxioms());
 	}
 	public static void testmain()throws  Exception{
 		String ontoPath = "/NCBOcrawler/GO/go1802.owl";

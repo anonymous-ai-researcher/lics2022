@@ -1,5 +1,6 @@
 package justification;
 
+import com.google.common.collect.Sets;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import convertion.BackConverter;
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
@@ -94,19 +95,24 @@ public class HintTree {
     }
     public static  void main(String []args) throws  Exception{
         HintTree tree = new HintTree();
-        String O2 = "/Users/liuzhao/nju/ontologyCompare/FINISHED/broEL/v3.2.1.owl";
-        String implicitWitness = "/Users/liuzhao/nju/ontologyCompare/FINISHED/broEL/witness_implicit.owl";
+        String implicitWitness = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/17011707upgrade.owl";
+        String O2 = "/Users/liuzhao/Desktop/experiments/Test_data_for_logical_difference/Test_Data/all/ontology_201707.owl";
         OWLOntology onto_2 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(O2));
-        System.out.println(onto_2.getAxioms().size());
+        System.out.println(onto_2.getLogicalAxiomCount());
         OWLOntology onto_implicitWitness = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(implicitWitness));
-        Set<OWLAxiom> axioms = onto_implicitWitness.getAxioms();
-        long startTime1 = System.currentTimeMillis();
-        for(OWLAxiom axiom : axioms){
+        System.out.println(onto_implicitWitness.getLogicalAxiomCount());
+
+        Set<OWLLogicalAxiom> axioms = onto_implicitWitness.getLogicalAxioms();
+        Set<OWLLogicalAxiom> nowCheck = Sets.difference(axioms,onto_2.getLogicalAxioms());
+        int j = 0 ;
+        for(OWLAxiom axiom : nowCheck){
+            System.out.println(j++ +" "+ nowCheck.size());
+            System.out.println("check "+axiom);
             Set<Set<OWLAxiom>> just = tree.ComputeAllJust(onto_2,axiom);
-            System.out.println("just num:"+just.size());
+            System.out.println("how many justs? :"+just.size());
             int num = 0;
             for(Set<OWLAxiom> n : just){
-                System.out.println(num+" size "+n.size());
+                System.out.println(num+" this just size "+n.size());
                 for(OWLAxiom i : n){
                     System.out.println(i);
                 }
