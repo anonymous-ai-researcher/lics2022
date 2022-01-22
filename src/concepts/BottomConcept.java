@@ -9,7 +9,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 /**
  *
- * @author Yizheng
+ * @author Yizheng zhaoliu
  */
 public class BottomConcept extends ConceptExpression {
 

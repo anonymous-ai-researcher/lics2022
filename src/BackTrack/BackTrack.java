@@ -22,7 +22,7 @@ public   class BackTrack {
     public static HashMap<Integer,Formula> Int2Formula = new HashMap<>();
 
     public static void addFatherHash(Formula child, Formula Father1,int tag) throws  Exception{
-        //System.out.println("behind :"+child+" "+Father1+" "+tag);
+        System.out.println("behind :"+child+" "+Father1+" "+tag);
 
 
         Set<Integer> thisFather = new LinkedHashSet<>();

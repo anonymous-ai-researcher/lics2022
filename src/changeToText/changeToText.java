@@ -14,7 +14,7 @@ import java.util.*;
 
 public class changeToText {
     public static void main(String[] args) throws Exception{
-        String O2 = "/Users/liuzhao/nju/NCBO/data/snomedcttest/snomed_ct_intl_20170731.owl/snomed_ct_intl_20170731.owl";
+        String O2 = "/Users/liuzhao/nju/NCBO/data/snomedcttest/snomed_ct_intl_20170731.owl/snomed_ct_intl_20170731.owl ";
         OWLOntology onto_2 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(O2));
         Set<OWLAxiom> axioms = onto_2.getAxioms();
         System.out.println(1);

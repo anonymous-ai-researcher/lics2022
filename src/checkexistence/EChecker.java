@@ -14,7 +14,7 @@ import roles.AtomicRole;
 
 /**
  *
- * @author Yizheng311
+ * @author Yizheng311 zhao liu
  */
 public class EChecker {
 

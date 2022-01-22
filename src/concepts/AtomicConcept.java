@@ -28,7 +28,7 @@ public class AtomicConcept extends ConceptExpression implements Comparable<Atomi
 	
 	public static void main(String[] args) {	
 		AtomicConcept ac = new AtomicConcept("A");
-		System.out.println("ac.c_sig = " + ac.c_sig);
+		System.out.println("ac.c_sig =  " + ac.c_sig);
 		System.out.println("ac.r_sig = " + ac.r_sig);
 		
 	}

@@ -50,7 +50,7 @@ public class FChecker {
 	}
 	
 	public static void main(String[] args) {	
-		AtomicConcept a = new AtomicConcept("A");
+		AtomicConcept a = new AtomicConcept("A ");
 		AtomicConcept b = new AtomicConcept("B");
 		AtomicConcept c = new AtomicConcept("C");
 		AtomicRole r = new AtomicRole("r");

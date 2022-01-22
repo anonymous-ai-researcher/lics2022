@@ -3,7 +3,7 @@ package individual;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import concepts.ConceptExpression;
-
+// zhaoliu
 public class Individual extends ConceptExpression {
 
 	public Individual() {
