@@ -3,7 +3,7 @@
 * Welcome to this site and thanks for your interest in trying out our uniform interpolation (UI) tool and logical difference (UI-Diff) tool. Both tools are implemented in Java using the **OWL API**, so to get them work, first make sure you have JDK/JRE installed on your machine.
 * Your feedbacks are always welcome!
 
-## Semantic Difference between SNOMED CT ontologies
+## Semantic difference between SNOMED CT ontologies
 
 * ![image](https://github.com/anonymous-ai-researcher/lics2022/blob/master/information_gain_and_loss.jpg)
 
