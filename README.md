@@ -1,5 +1,5 @@
 # README
-## 【update】script of analyzing the connection between timeout and maxDepth
+## 【Update】the script of analyzing the connection between timeout and maxDepth
 
 * The file OxfordAnalyse.txt and BioPortalAnalyse.txt are the meta data. Run the script main.py and get the result of the Table 3 in our paper.
 ## Welcome
